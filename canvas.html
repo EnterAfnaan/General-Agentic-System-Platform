@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trellis · Canvas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .cv-head { display: flex; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; align-items: end; padding-bottom: 16px; }
+  .cv-head h1 { font-size: clamp(30px, 3.6vw, 40px); }
+  .cv-head .lede { font-size: 16px; }
+  .seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; background: var(--surface); max-width: 100%; overflow-x: auto; }
+  .seg button { font: inherit; font-size: 13.5px; font-weight: 600; padding: 9px 13px; border: 0; background: none; color: var(--muted); cursor: pointer; white-space: nowrap; border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+  .tmpl-note { font-size: 13.5px; color: var(--muted); }
+  .stats .value small { font-size: 14px; color: var(--muted); font-weight: 500; }
+  .stats .value.err { color: var(--err); }
+  .stats .value.warn { color: var(--warn); }
+  .stats .value.ok { color: var(--ok); }
+
+  .ws { display: grid; grid-template-columns: 184px minmax(0, 1fr) 368px; gap: 14px; margin-top: 14px; align-items: start; }
+  @media (max-width: 1640px) { .ws { grid-template-columns: minmax(0, 1fr) 352px; } .palette { grid-column: 1 / -1; } .palette .pal-groups { display: flex; flex-wrap: wrap; gap: 6px 16px; } .palette .pal-group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; } .palette .pal-group .eyebrow { width: auto; } }
+  @media (max-width: 920px) { .ws { grid-template-columns: minmax(0, 1fr); } }
+
+  .palette { padding: 12px; display: grid; gap: 10px; }
+  .pal-groups { display: grid; gap: 12px; }
+  .pal-group { display: grid; gap: 5px; }
+  .pal-btn { font: inherit; font-size: 13px; text-align: left; display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .pal-btn:hover { border-color: var(--accent); }
+  .pal-btn i { width: 10px; height: 10px; border-radius: 2px; background: var(--kc); flex: none; }
+
+  .cv-tools { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  .canvas-scroll { overflow: auto; max-height: min(640px, 72vh); min-height: 300px; background-color: var(--surface-2);
+    background-image: radial-gradient(var(--line) 1.1px, transparent 1.3px); background-size: 20px 20px; border-radius: 0 0 var(--r) var(--r); touch-action: none; }
+  #cv { display: block; max-width: none; user-select: none; -webkit-user-select: none; }
+  .nd { cursor: grab; }
+  .nd:focus { outline: none; }
+  .nd .nd-bg { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.2; }
+  .nd.gov .nd-bg { stroke: var(--k-govern); stroke-width: 1.8; }
+  .nd.sel .nd-bg, .nd:focus-visible .nd-bg { stroke: var(--accent); stroke-width: 2.6; }
+  .nd.flash .nd-bg { stroke: var(--ok); stroke-width: 3; }
+  .nd-kind { font: 500 9.5px var(--f-mono); fill: var(--muted); letter-spacing: .05em; }
+  .nd-label { font: 600 13.5px var(--f-body); fill: var(--ink); }
+  .nd-meta { font: 400 10.5px var(--f-mono); fill: var(--muted); }
+  .nd-loop { font: 600 10.5px var(--f-mono); fill: var(--accent); }
+  .mk.error { fill: var(--err); } .mk.warn { fill: var(--warn); } .mk.info { fill: var(--info); }
+  .mk-t { fill: var(--surface); font: 700 10px var(--f-mono); }
+  .edge { fill: none; stroke: var(--line-strong); stroke-width: 1.7; }
+  .edge.back { stroke: var(--accent); stroke-dasharray: 6 4; }
+  .edge-l { font: 500 10.5px var(--f-mono); fill: var(--muted); paint-order: stroke; stroke: var(--surface-2); stroke-width: 5px; stroke-linejoin: round; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 10px 12px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+
+  .insp { position: sticky; top: calc(14px + env(safe-area-inset-top, 0px)); }
+  @media (max-width: 920px) { .insp { position: static; } }
+  .insp .tabs { padding: 0 8px; }
+  .insp-body { padding: 14px; display: grid; gap: 12px; max-height: calc(100vh - 120px); overflow: auto; align-content: start; }
+  @media (max-width: 920px) { .insp-body { max-height: none; } }
+  .fd { border: 1px solid var(--line); border-left: 3px solid var(--sc); border-radius: 6px; padding: 10px 12px; display: grid; gap: 6px; background: var(--surface); }
+  .fd.error { --sc: var(--err); } .fd.warn { --sc: var(--warn); } .fd.info { --sc: var(--info); }
+  .fd-top { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .fd-top .rule { font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+  .fd b { font-size: 14px; line-height: 1.35; }
+  .fd p { font-size: 13px; color: var(--muted); }
+  .fd .row { gap: 6px; }
+  .empty-ok { display: grid; gap: 6px; padding: 14px; border-radius: 8px; background: var(--ok-soft); color: var(--ok); }
+  .edges-list { display: grid; gap: 6px; }
+  .edge-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; font-size: 13px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; }
+  .edge-row.router { grid-template-columns: minmax(0, 1fr) 64px 58px auto; }
+  .edge-row input { padding: 4px 6px; font-size: 12.5px; }
+  .insp h3 { font-size: 18px; }
+  .fields { display: grid; gap: 10px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .help { font-size: 12.5px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="shell compact" data-page="compose">
+  <nav id="rail" class="rail" aria-label="Prototype pages"></nav>
+  <main class="main">
+    <div class="page wide">
+      <header class="cv-head">
+        <div class="stack" style="gap:8px;max-width:72ch">
+          <p class="eyebrow">Stage 2 · Compose, with Stage 3 · Check running live</p>
+          <h1>The canvas</h1>
+          <p class="lede">Drag nodes, change models, connect steps. The pre-flight check reruns on every change. Each template starts with real mistakes in it. Open the Pre-flight tab and apply the fixes.</p>
+        </div>
+        <div class="stack" style="gap:6px;justify-items:end">
+          <div class="seg" id="tmplSeg" role="group" aria-label="Example system"></div>
+          <span class="tmpl-note" id="tmplNote"></span>
+        </div>
+      </header>
+
+      <div class="stats" id="stats" aria-live="polite"></div>
+
+      <div class="ws">
+        <aside class="panel palette" aria-label="Add a node">
+          <span class="eyebrow">Add a node</span>
+          <div class="pal-groups" id="palette"></div>
+          <p class="help">New nodes land in free space. Connect them from the inspector.</p>
+        </aside>
+
+        <section class="panel" aria-label="Canvas">
+          <div class="cv-tools">
+            <div class="row" style="gap:6px">
+              <button class="btn sm" id="zOut" aria-label="Zoom out">−</button>
+              <button class="btn sm" id="zFit">Fit</button>
+              <button class="btn sm" id="zIn" aria-label="Zoom in">+</button>
+              <span class="small muted mono" id="zLbl"></span>
+            </div>
+            <div class="row" style="gap:6px">
+              <button class="btn sm" id="undo">Undo</button>
+              <button class="btn sm" id="reset">Reset template</button>
+              <button class="btn sm primary" id="export">View as code</button>
+            </div>
+          </div>
+          <div class="canvas-scroll" id="scroll"><svg id="cv" role="application" aria-label="Agent system graph. Drag nodes to move them, select a node to inspect it."></svg></div>
+          <div class="legend">
+            <span class="kind k-trigger">Trigger</span><span class="kind k-agent">Agent</span><span class="kind k-harness">Harness</span><span class="kind k-tool">Tool, code, output</span><span class="kind k-data">Data, knowledge, memory</span><span class="kind k-control">Router, exit</span><span class="kind k-govern">Governance</span>
+            <span>Dashed blue edge = loop back</span><span>↻ ×3 = expected iterations</span>
+          </div>
+        </section>
+
+        <aside class="panel insp" aria-label="Inspector">
+          <div class="tabs" id="inspTabs" role="tablist">
+            <button data-t="preflight" role="tab">Pre-flight</button>
+            <button data-t="inspect" role="tab">System</button>
+          </div>
+          <div class="insp-body" id="insp"></div>
+        </aside>
+      </div>
+
+      <section class="section" aria-labelledby="notes-h" style="margin-top:36px">
+        <div class="section-head">
+          <p class="eyebrow">Reading the canvas</p>
+          <h2 id="notes-h">What the numbers on each node mean</h2>
+        </div>
+        <div class="grid g3">
+          <div class="card"><h4>Cost and time per run</h4><p>Each node shows its expected cost and time for one run of the system, weighted by how often its branch is taken. A node inside a loop is multiplied by the expected iterations.</p></div>
+          <div class="card"><h4>p50 and p95</h4><p>p50 follows the most likely branch at each router with the expected loop count. p95 follows the most expensive branch with the maximum loop count. If a loop has no exit, p95 is unbounded.</p></div>
+          <div class="card"><h4>Prices are illustrative</h4><p>Model tiers use made-up per-token prices so the arithmetic is visible. In the real product, forecasts are calibrated against the system's own traces after its first runs.</p></div>
+          <div class="card"><h4>The graph is code</h4><p>"View as code" shows the spec the canvas edits. A team can write the same spec by hand, review it in a pull request and run the same pre-flight in CI.</p></div>
+          <div class="card"><h4>Checkpoints are automatic</h4><p>By default the runtime saves state at every node boundary. The System tab lets a team change that, and pre-flight objects if a graph waits for people with checkpoints off.</p></div>
+          <div class="card"><h4>Not shown in this prototype</h4><p>Sub-graphs, versions and diffs, collaborative editing, and live overlays of real trace data on the nodes. The Run page shows what that overlay would look like.</p></div>
+        </div>
+      </section>
+
+      <nav class="next-prev" aria-label="Previous and next pages">
+        <a href="connect.html"><span>← Stage 1</span><b>Connect</b></a>
+        <a href="check.html"><span>Next · Stage 3</span><b>Check: lint, forecast, rate →</b></a>
+      </nav>
+    </div>
+  </main>
+</div>
+<script src="shared.js"></script>
+<script>
+(function () {
+  // ---------------- catalog ----------------
+  const MODELS = {
+    "large-tenant": { short: "large · tenant", name: "Large · in-tenant", boundary: "tenant", pin: 2.5, pout: 10, base: 700, mpt: 22 },
+    "medium-tenant": { short: "medium · tenant", name: "Medium · in-tenant", boundary: "tenant", pin: 0.4, pout: 1.6, base: 450, mpt: 12 },
+    "small-tenant": { short: "small · tenant", name: "Small · in-tenant", boundary: "tenant", pin: 0.1, pout: 0.4, base: 300, mpt: 7 },
+    "large-ext": { short: "large · external", name: "Large · external processor", boundary: "processor", pin: 3, pout: 15, base: 800, mpt: 20 },
+    "small-ext": { short: "small · external", name: "Small · external processor", boundary: "processor", pin: 0.8, pout: 4, base: 400, mpt: 9 },
+    "open-70b": { short: "open 70B · tenant", name: "Open-weight 70B · self-hosted", boundary: "tenant", pin: 0.6, pout: 0.6, base: 500, mpt: 25 }
+  };
+  const TYPES = {
+    trigger: { kind: "trigger", label: "Trigger", def: { source: "Webhook", untrusted: true, pii: false } },
+    agent: { kind: "agent", label: "Agent", def: { model: "medium-tenant", task: "reason", tin: 2000, tout: 300, writeTools: false, compact: false } },
+    harness: { kind: "harness", label: "Harness", def: { harness: "Claude Code", sandbox: true, egress: "allowlist", scope: "branch", session: 0.9, lat: 70000 } },
+    tool: { kind: "tool", label: "Tool", def: { connector: "HTTP / OpenAPI", write: false, tier: 0, pii: false, lat: 400 } },
+    code: { kind: "tool", label: "Code", def: { code: "def run(inputs):\n    # your code, sandboxed, no network\n    return inputs", untrusted: false, lat: 600 } },
+    data: { kind: "data", label: "Database", def: { connector: "PostgreSQL", write: false, tier: 0, pii: false } },
+    knowledge: { kind: "data", label: "Knowledge", def: { connector: "Azure AI Search", pii: false } },
+    memory: { kind: "data", label: "Memory", def: { op: "read", scope: "system", store: "pgvector", pii: false } },
+    router: { kind: "control", label: "Router", def: { llm: false } },
+    exit: { kind: "control", label: "Exit", def: { success: "goal met", expected: 3, max: 6, budget: 0.5 } },
+    approval: { kind: "govern", label: "Approval", def: { approver: "Team leads", timeout: "" } },
+    guardrail: { kind: "govern", label: "Guardrail", def: { types: ["pii"] } },
+    output: { kind: "tool", label: "Output", def: { connector: "Slack", write: true, tier: 1 } }
+  };
+  const PALETTE = [
+    ["Start and think", ["trigger", "agent", "harness"]],
+    ["Act and read", ["tool", "code", "data", "knowledge", "memory", "output"]],
+    ["Control", ["router", "exit"]],
+    ["Govern", ["approval", "guardrail"]]
+  ];
+  const GUARD = { pii: "PII redaction", injection: "Injection screen", grounded: "Groundedness check", schema: "Output schema" };
+  const SP = 204, W = 164, H = 58;
+
+  // ---------------- templates ----------------
+  const N = (id, type, label, x, y, cfg) => ({ id, type, label, x, y, cfg: Object.assign({}, TYPES[type].def, cfg || {}) });
+  const TEMPLATES = {
+    triage: {
+      tab: "Support triage", note: "Customer Support · router workflow",
+      system: { name: "support-triage", team: "Customer Support", goals: ["Resolve or route every new ticket within 2 minutes"], runsPerDay: 1200, checkpoint: "every", evalSet: "Triage golden set · 412 labelled tickets", budget: 0.25 },
+      nodes: [
+        N("t1", "trigger", "New ticket", 24, 220, { source: "Zendesk", untrusted: true, pii: true }),
+        N("t2", "guardrail", "Input shield", 24 + SP, 220, { types: ["pii", "injection"] }),
+        N("t3", "agent", "Classify intent", 24 + SP * 2, 220, { model: "large-tenant", task: "classify", tin: 900, tout: 30 }),
+        N("t4", "router", "Route by intent", 24 + SP * 3, 220, {}),
+        N("t5", "knowledge", "Search help center", 24 + SP * 4, 90, { connector: "Azure AI Search" }),
+        N("t6", "agent", "Draft reply", 24 + SP * 5, 90, { model: "large-tenant", task: "draft", tin: 4200, tout: 450 }),
+        N("t7", "guardrail", "Groundedness check", 24 + SP * 6, 90, { types: ["grounded"] }),
+        N("t8", "output", "Post reply", 24 + SP * 7, 90, { connector: "Zendesk", write: true, tier: 2 }),
+        N("t9", "output", "Hand to human queue", 24 + SP * 4, 220, { connector: "Zendesk", write: true, tier: 1 }),
+        N("t10", "data", "Order history", 24 + SP * 4, 350, { connector: "SQL Server", pii: true }),
+        N("t11", "agent", "Check refund eligibility", 24 + SP * 5, 350, { model: "large-ext", task: "reason", tin: 2600, tout: 220 }),
+        N("t12", "tool", "Issue refund", 24 + SP * 6, 350, { connector: "Refunds API", write: true, tier: 3, lat: 420 }),
+        N("t13", "output", "Send confirmation", 24 + SP * 7, 350, { connector: "Zendesk macro", write: true, tier: 1 })
+      ],
+      edges: [["t1", "t2"], ["t2", "t3"], ["t3", "t4"], ["t4", "t5", "question", 0.62], ["t4", "t9", "other", 0.15], ["t4", "t10", "refund", 0.23], ["t5", "t6"], ["t6", "t7"], ["t7", "t8"], ["t10", "t11"], ["t11", "t12"], ["t12", "t13"]]
+    },
+    prreview: {
+      tab: "PR review", note: "Platform Engineering · parallel goals with coding harnesses",
+      system: { name: "pr-review", team: "Platform Engineering", goals: ["Find correctness bugs", "Add missing tests", "Flag security issues"], runsPerDay: 300, checkpoint: "every", evalSet: "", budget: 4 },
+      nodes: [
+        N("p1", "trigger", "PR opened", 24, 220, { source: "GitHub", untrusted: false, pii: false }),
+        N("p2", "code", "Fetch diff & split", 24 + SP, 220, { untrusted: true, code: "def run(pr):\n    diff = github.get_diff(pr.number)\n    files = [f for f in diff.files if not f.generated]\n    return {\"files\": files[:40], \"title\": pr.title}" }),
+        N("p3", "harness", "Claude Code · correctness", 24 + SP * 2, 80, { harness: "Claude Code", sandbox: true, egress: "allowlist", session: 0.9, lat: 70000 }),
+        N("p4", "harness", "Codex · missing tests", 24 + SP * 2, 220, { harness: "Codex", sandbox: false, egress: "open", session: 0.7, lat: 60000 }),
+        N("p5", "agent", "Security review", 24 + SP * 2, 360, { model: "large-ext", task: "reason", tin: 6000, tout: 600 }),
+        N("p6", "tool", "Run test suite", 24 + SP * 3, 220, { connector: "Container job", lat: 95000 }),
+        N("p7", "agent", "Merge findings", 24 + SP * 4, 220, { model: "medium-tenant", task: "draft", tin: 5000, tout: 700 }),
+        N("p8", "output", "Post review comment", 24 + SP * 5, 220, { connector: "GitHub (MCP)", write: true, tier: 1 })
+      ],
+      edges: [["p1", "p2"], ["p2", "p3"], ["p2", "p4"], ["p2", "p5"], ["p4", "p6"], ["p3", "p7"], ["p6", "p7"], ["p5", "p7"], ["p7", "p8"]]
+    },
+    incident: {
+      tab: "Incident investigator", note: "SRE · goal-based loop over read-only evidence",
+      system: { name: "incident-investigator", team: "SRE / Database reliability", goals: ["Name the root cause with evidence", "Recommend a fix a DBA can review"], runsPerDay: 40, checkpoint: "every", evalSet: "Injected-fault scenarios · 36 cases", budget: 1 },
+      nodes: [
+        N("i1", "trigger", "Alert fired", 24, 200, { source: "Kafka · alerts topic", untrusted: false, pii: false }),
+        N("i2", "memory", "Recall similar incidents", 24 + SP, 200, { op: "read", scope: "team", store: "pgvector" }),
+        N("i3", "agent", "Propose hypotheses", 24 + SP * 2, 200, { model: "large-tenant", task: "reason", tin: 3500, tout: 500 }),
+        N("i4", "agent", "Pick next test", 24 + SP * 3, 200, { model: "medium-tenant", task: "reason", tin: 2500, tout: 200 }),
+        N("i5", "data", "Query DMVs (read-only)", 24 + SP * 4, 200, { connector: "SQL Server", write: false }),
+        N("i6", "agent", "Score evidence", 24 + SP * 5, 200, { model: "large-tenant", task: "reason", tin: 4000, tout: 300 }),
+        N("i7", "router", "Confirmed?", 24 + SP * 6, 200, {}),
+        N("i8", "output", "Write RCA report", 24 + SP * 7, 110, { connector: "Jira", write: true, tier: 1 }),
+        N("i9", "memory", "Save confirmed cause", 24 + SP * 7, 290, { op: "write", scope: "team", store: "pgvector" })
+      ],
+      edges: [["i1", "i2"], ["i2", "i3"], ["i3", "i4"], ["i4", "i5"], ["i5", "i6"], ["i6", "i7"], ["i7", "i8", "confirmed", 0.35], ["i7", "i9", "confirmed", 0.35], ["i7", "i4", "not yet", 0.65]]
+    }
+  };
+
+  // ---------------- state ----------------
+  const S = { key: "triage", g: null, sel: null, tab: "preflight", zoom: 1, fit: true, hist: [], seq: 100, flash: null };
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  function load(key) {
+    const t = TEMPLATES[key];
+    S.key = key; S.sel = null; S.hist = []; S.tab = "preflight"; S.fit = true;
+    S.g = { system: clone(t.system), nodes: clone(t.nodes), edges: t.edges.map(([from, to, label, p]) => ({ from, to, label: label || "", p: p == null ? null : p })) };
+    try { history.replaceState(null, "", "#" + key); } catch (e) {}
+    renderAll(true);
+  }
+  function snapshot() { S.hist.push(JSON.stringify(S.g)); if (S.hist.length > 60) S.hist.shift(); }
+  const node = (id) => S.g.nodes.find((n) => n.id === id);
+
+  // ---------------- analysis ----------------
+  function analyze(g) {
+    const ids = g.nodes.map((n) => n.id);
+    const out = {}, inn = {};
+    ids.forEach((i) => { out[i] = []; inn[i] = []; });
+    g.edges.forEach((e, k) => { if (out[e.from] && inn[e.to]) { out[e.from].push(k); inn[e.to].push(k); } });
+    let roots = g.nodes.filter((n) => n.type === "trigger").map((n) => n.id);
+    if (!roots.length) roots = ids.filter((i) => !inn[i].length);
+    // back edges by DFS
+    const back = new Set(), color = {};
+    const dfs = (u) => { color[u] = 1; out[u].forEach((k) => { const v = g.edges[k].to; if (color[v] === 1) back.add(k); else if (!color[v]) dfs(v); }); color[u] = 2; };
+    roots.forEach((r) => { if (!color[r]) dfs(r); });
+    ids.forEach((i) => { if (!color[i]) dfs(i); });
+    // SCC (Tarjan)
+    let idx = 0; const st = [], on = {}, num = {}, low = {}, scc = {}; const comps = [];
+    const strong = (v) => {
+      num[v] = low[v] = idx++; st.push(v); on[v] = true;
+      out[v].forEach((k) => { const w = g.edges[k].to; if (num[w] == null) { strong(w); low[v] = Math.min(low[v], low[w]); } else if (on[w]) low[v] = Math.min(low[v], num[w]); });
+      if (low[v] === num[v]) { const c = []; let w; do { w = st.pop(); on[w] = false; scc[w] = comps.length; c.push(w); } while (w !== v); comps.push(c); }
+    };
+    ids.forEach((v) => { if (num[v] == null) strong(v); });
+    const loops = comps.filter((c) => c.length > 1 || g.edges.some((e) => e.from === c[0] && e.to === c[0]));
+    const loopOf = {};
+    loops.forEach((c, li) => c.forEach((v) => { loopOf[v] = li; }));
+    const loopExit = loops.map((c) => c.map(node).find((n) => n.type === "exit"));
+    const it50 = (v) => { if (loopOf[v] == null) return 1; const x = loopExit[loopOf[v]]; return x ? Math.max(1, +x.cfg.expected || 1) : 3; };
+    const it95 = (v) => { if (loopOf[v] == null) return 1; const x = loopExit[loopOf[v]]; return x && +x.cfg.max > 0 ? +x.cfg.max : Infinity; };
+    const fwd = (u) => out[u].filter((k) => !back.has(k));
+    // topological order over forward edges
+    const indeg = {}; ids.forEach((i) => { indeg[i] = 0; });
+    g.edges.forEach((e, k) => { if (!back.has(k) && indeg[e.to] != null) indeg[e.to]++; });
+    const q = ids.filter((i) => !indeg[i]), topo = [];
+    while (q.length) { const u = q.shift(); topo.push(u); fwd(u).forEach((k) => { const v = g.edges[k].to; if (--indeg[v] === 0) q.push(v); }); }
+    // own cost / latency
+    const own = (n, iters) => {
+      const c = n.cfg; let cost = 0, lat = 0;
+      const n50 = Number.isFinite(iters) ? iters : 6;
+      switch (n.type) {
+        case "agent": {
+          const m = MODELS[c.model] || MODELS["medium-tenant"]; const gr = loopOf[n.id] != null ? (c.compact ? 1.05 : 1.5) : 1;
+          for (let i = 0; i < n50; i++) cost += ((+c.tin || 0) * Math.pow(gr, i) * m.pin + (+c.tout || 0) * m.pout) / 1e6;
+          lat = (m.base + (+c.tout || 0) * m.mpt) * n50; return { cost, lat };
+        }
+        case "harness": cost = +c.session || 0.8; lat = +c.lat || 60000; break;
+        case "tool": cost = 0.0005; lat = +c.lat || 400; break;
+        case "code": cost = 0.0002; lat = +c.lat || 600; break;
+        case "data": cost = 0.0008; lat = 300; break;
+        case "knowledge": cost = 0.0012; lat = 180; break;
+        case "memory": cost = 0.0006; lat = 60; break;
+        case "router": cost = c.llm ? (500 * 0.1 + 10 * 0.4) / 1e6 : 0; lat = c.llm ? 380 : 5; break;
+        case "guardrail": (c.types || []).forEach((t) => { cost += t === "grounded" ? 0.004 : 0.0006; lat += t === "grounded" ? 900 : 120; }); break;
+        case "output": cost = 0.0004; lat = 350; break;
+        default: break;
+      }
+      return { cost: cost * n50, lat: lat * n50 };
+    };
+    // p50 visit probability
+    const prob = {}; ids.forEach((i) => { prob[i] = 0; }); roots.forEach((r) => { prob[r] = 1; });
+    topo.forEach((u) => {
+      const ks = fwd(u); if (!ks.length) return;
+      const n = node(u); const isR = n.type === "router";
+      const tot = isR ? ks.reduce((s, k) => s + (g.edges[k].p == null ? 1 : +g.edges[k].p), 0) || 1 : 1;
+      ks.forEach((k) => { const e = g.edges[k]; const w = isR ? (e.p == null ? 1 : +e.p) / tot : 1; prob[e.to] = Math.min(1, prob[e.to] + prob[u] * w); });
+    });
+    // active sets for p50 (most likely branch) and p95 (most expensive branch)
+    const reachCost = (start, memo) => { const seen = new Set([start]), st2 = [start]; let s = 0; while (st2.length) { const u = st2.pop(); s += own(node(u), it95(u)).cost; fwd(u).forEach((k) => { const v = g.edges[k].to; if (!seen.has(v)) { seen.add(v); st2.push(v); } }); } return s; };
+    const active = (mode) => {
+      const seen = new Set(roots), st2 = [...roots];
+      while (st2.length) {
+        const u = st2.pop(); const n = node(u); let ks = fwd(u);
+        if (n.type === "router" && ks.length > 1) {
+          if (mode === "p50") ks = [ks.reduce((a, b) => ((g.edges[b].p || 0) > (g.edges[a].p || 0) ? b : a))];
+          else ks = [ks.reduce((a, b) => (reachCost(g.edges[b].to) > reachCost(g.edges[a].to) ? b : a))];
+        }
+        ks.forEach((k) => { const v = g.edges[k].to; if (!seen.has(v)) { seen.add(v); st2.push(v); } });
+      }
+      return seen;
+    };
+    const A50 = active("p50"), A95 = active("p95");
+    const longest = (act, itf, mul) => {
+      const fin = {}; let best = 0;
+      topo.forEach((u) => { if (!act.has(u)) return; const preds = inn[u].filter((k) => !back.has(k) && act.has(g.edges[k].from)).map((k) => fin[g.edges[k].from] || 0); const it = itf(u); const l = Number.isFinite(it) ? own(node(u), it).lat : Infinity; fin[u] = (preds.length ? Math.max(...preds) : 0) + l * mul; best = Math.max(best, fin[u]); });
+      return best;
+    };
+    const per = {};
+    let cost50 = 0, cost95 = 0, unbounded = false;
+    g.nodes.forEach((n) => {
+      const o = own(n, it50(n.id)); const c = o.cost * prob[n.id];
+      per[n.id] = { c, l: o.lat, p: prob[n.id], it: loopOf[n.id] != null ? it50(n.id) : 0 };
+      cost50 += c;
+      if (A95.has(n.id)) { const i9 = it95(n.id); if (!Number.isFinite(i9)) unbounded = true; else cost95 += own(n, i9).cost * 1.25; }
+    });
+    const hasApproval = g.nodes.some((n) => n.type === "approval" && A95.has(n.id));
+    return { out, inn, back, roots, loops, loopOf, loopExit, fwd, prob, per, cost50, cost95: unbounded ? Infinity : cost95, lat50: longest(A50, it50, 1), lat95: unbounded ? Infinity : longest(A95, it95, 1.3), hasApproval, topo };
+  }
+
+  // reachability that does not enter nodes matching `stop`
+  function reach(A, starts, stop) {
+    const seen = new Set(); const st = [...starts];
+    while (st.length) { const u = st.pop(); if (seen.has(u)) continue; const n = node(u); if (!n || stop(n)) continue; seen.add(u); A.out[u].forEach((k) => st.push(S.g.edges[k].to)); }
+    return seen;
+  }
+  const succ = (A, u) => A.out[u].map((k) => S.g.edges[k].to);
+
+  // ---------------- graph edits ----------------
+  function downstream(A, id) { const seen = new Set(), st = [id]; while (st.length) { const u = st.pop(); A.fwd(u).forEach((k) => { const v = S.g.edges[k].to; if (!seen.has(v) && v !== id) { seen.add(v); st.push(v); } }); } return seen; }
+  function newNode(type, label, cfg, x, y) { const n = N("n" + (++S.seq), type, label, x, y, cfg); S.g.nodes.push(n); return n; }
+  function insertBefore(targetId, type, label, cfg) {
+    const A = analyze(S.g); const t = node(targetId);
+    const shift = downstream(A, targetId); shift.add(targetId);
+    const nn = newNode(type, label, cfg, t.x, t.y);
+    S.g.nodes.forEach((n) => { if (shift.has(n.id)) n.x += SP; });
+    S.g.edges.forEach((e) => { if (e.to === targetId) e.to = nn.id; });
+    S.g.edges.push({ from: nn.id, to: targetId, label: "", p: null });
+    return nn;
+  }
+  function insertAfter(srcId, type, label, cfg) {
+    const A = analyze(S.g); const s = node(srcId);
+    const shift = downstream(A, srcId);
+    const nn = newNode(type, label, cfg, s.x + SP, s.y);
+    S.g.nodes.forEach((n) => { if (shift.has(n.id)) n.x += SP; });
+    S.g.edges.forEach((e) => { if (e.from === srcId) e.from = nn.id; });
+    S.g.edges.push({ from: srcId, to: nn.id, label: "", p: null });
+    return nn;
+  }
+
+  // ---------------- pre-flight rules ----------------
+  function lint(A) {
+    const F = []; const g = S.g;
+    const add = (o) => F.push(o);
+    // T-01 / T-04 / C-02 loops
+    A.loops.forEach((c, li) => {
+      const ex = A.loopExit[li];
+      const members = c.map(node);
+      const router = members.find((n) => n.type === "router");
+      if (!ex) {
+        const target = router || members[0];
+        add({ rule: "T-01", sev: "error", node: target.id, title: `Loop through "${target.label}" has no exit condition`,
+          why: `Nothing stops this loop except the model deciding it is done. On a hard case it can run until a timeout or a bill stops it, so p95 cost is unbounded.`,
+          fixLabel: "Add exit: success, 6 iterations, $0.60", fix: () => { const x = insertBefore(target.id, "exit", "Stop when confirmed", { success: "a hypothesis scores ≥ 0.8 with 2 pieces of evidence", expected: 3, max: 6, budget: 0.6 }); return x.id; } });
+      } else if (!(+ex.cfg.max > 0) || !(+ex.cfg.budget > 0)) {
+        add({ rule: "T-04", sev: "warn", node: ex.id, title: `Exit "${ex.label}" has no iteration cap or budget`, why: "A success test alone is not enough. If the model never reaches it, the loop still has no ceiling.", fixLabel: "Set 6 iterations and $0.60", fix: () => { ex.cfg.max = 6; ex.cfg.budget = 0.6; return ex.id; } });
+      }
+      const growers = members.filter((n) => n.type === "agent" && !n.cfg.compact);
+      if (growers.length) add({ rule: "C-02", sev: "warn", node: growers[0].id, title: `Context grows on every pass: ${growers.map((n) => n.label).join(", ")}`,
+        why: "Each iteration appends the previous tool output to the prompt, so input tokens grow about 1.5× per pass. Compacting keeps a running summary instead.",
+        fixLabel: "Compact context between iterations", fix: () => { growers.forEach((n) => { n.cfg.compact = true; }); return growers[0].id; } });
+    });
+    // S-01 writes without approval
+    g.nodes.forEach((n) => {
+      if (!n.cfg.write || !(n.cfg.tier >= 2)) return;
+      const t3 = n.cfg.tier >= 3;
+      const r = reach(A, A.roots, (m) => m.id !== n.id && (m.type === "approval" || (!t3 && m.type === "guardrail" && (m.cfg.types || []).some((t) => t === "grounded" || t === "schema"))));
+      if (r.has(n.id)) add({ rule: "S-01", sev: t3 ? "error" : "warn", node: n.id, title: `"${n.label}" writes at risk tier ${n.cfg.tier} with no ${t3 ? "approval" : "approval or output check"}`,
+        why: t3 ? "Tier 3 actions move money or delete data. Org policy requires a named person to approve each one." : "Tier 2 writes are visible to customers or change shared systems. They need a person or an output check before them.",
+        fixLabel: "Insert approval before it", fix: () => insertBefore(n.id, "approval", "Supervisor approves", { approver: "Support supervisors", timeout: "" }).id });
+    });
+    // D-01 PII to external model
+    g.nodes.filter((n) => n.cfg.pii).forEach((src) => {
+      const r = reach(A, succ(A, src.id), (m) => m.type === "guardrail" && (m.cfg.types || []).includes("pii"));
+      g.nodes.filter((m) => r.has(m.id) && m.type === "agent" && (MODELS[m.cfg.model] || {}).boundary === "processor").forEach((m) => {
+        if (F.some((f) => f.rule === "D-01" && f.node === m.id)) return;
+        add({ rule: "D-01", sev: "error", node: m.id, title: `PII from "${src.label}" reaches an external model in "${m.label}"`,
+          why: `"${src.label}" emits personal data and nothing redacts it before "${m.label}", which runs on a model outside our tenant. Org policy allows PII only on in-tenant models.`,
+          fixLabel: "Insert PII redaction before it", fix: () => insertBefore(m.id, "guardrail", "Redact PII", { types: ["pii"] }).id,
+          alt: { label: "Or switch to an in-tenant model", fn: () => { m.cfg.model = m.cfg.model === "small-ext" ? "small-tenant" : "large-tenant"; return m.id; } } });
+      });
+    });
+    // S-03 untrusted content into tool-using nodes
+    g.nodes.filter((n) => n.cfg.untrusted).forEach((src) => {
+      const r = reach(A, succ(A, src.id), (m) => m.type === "guardrail" && (m.cfg.types || []).includes("injection"));
+      const hit = g.nodes.filter((m) => r.has(m.id) && (m.type === "harness" || (m.type === "agent" && m.cfg.writeTools)));
+      if (hit.length) add({ rule: "S-03", sev: "warn", node: hit[0].id, title: `Untrusted content from "${src.label}" reaches ${hit.length} node${hit.length > 1 ? "s" : ""} that can act`,
+        why: `Text in a ${src.type === "trigger" ? "customer message" : "pull request or fetched document"} can carry instructions ("ignore previous rules and push to main"). ${hit.map((m) => m.label).join(", ")} can run tools, so screen the content first.`,
+        fixLabel: `Insert injection screen after "${src.label}"`, fix: () => insertAfter(src.id, "guardrail", "Injection screen", { types: ["injection"] }).id });
+    });
+    // S-02 harness sandbox / egress
+    g.nodes.filter((n) => n.type === "harness").forEach((n) => {
+      if (!n.cfg.sandbox) add({ rule: "S-02", sev: "error", node: n.id, title: `"${n.label}" runs outside a sandbox`, why: "A coding harness without a sandbox runs with the host's file system and credentials. Every harness gets a throwaway workspace.", fixLabel: "Run in sandbox", fix: () => { n.cfg.sandbox = true; return n.id; } });
+      else if (n.cfg.egress === "open") add({ rule: "S-02", sev: "warn", node: n.id, title: `"${n.label}" has open network access`, why: "Open egress lets the harness send code or secrets anywhere. Allow only package registries and our Git host.", fixLabel: "Restrict to allowlist", fix: () => { n.cfg.egress = "allowlist"; return n.id; } });
+    });
+    // C-01 oversized model
+    g.nodes.filter((n) => n.type === "agent" && ["classify", "extract"].includes(n.cfg.task) && /^large/.test(n.cfg.model)).forEach((n) => {
+      const m = MODELS[n.cfg.model], s = MODELS["small-tenant"];
+      const now = (n.cfg.tin * m.pin + n.cfg.tout * m.pout), then = (n.cfg.tin * s.pin + n.cfg.tout * s.pout);
+      add({ rule: "C-01", sev: "info", node: n.id, title: `"${n.label}" uses a large model for a ${n.cfg.task} step`, why: `On similar ${n.cfg.task} steps, small models usually score within a point or two. This node would cost about ${Math.round((1 - then / now) * 100)}% less. Run the attached eval set before accepting.`, fixLabel: "Switch to Small · in-tenant", fix: () => { n.cfg.model = "small-tenant"; return n.id; } });
+    });
+    // R-01 approval timeout, R-03 checkpoints
+    g.nodes.filter((n) => n.type === "approval" && !n.cfg.timeout).forEach((n) => add({ rule: "R-01", sev: "warn", node: n.id, title: `"${n.label}" waits forever`, why: "If nobody answers, the run sits open and the customer waits. Set a timeout and say what happens next.", fixLabel: "4 h timeout, then escalate to team lead", fix: () => { n.cfg.timeout = "4h, then escalate to team lead"; return n.id; } }));
+    if (S.g.system.checkpoint === "off" && g.nodes.some((n) => n.type === "approval")) add({ rule: "R-03", sev: "error", node: null, title: "Checkpoints are off, but the graph waits for people", why: "An approval can take hours. Without checkpoints a restart loses the run and repeats every paid step before it.", fixLabel: "Checkpoint at every node", fix: () => { S.g.system.checkpoint = "every"; return null; } });
+    // O-01 eval set
+    if (!S.g.system.evalSet) add({ rule: "O-01", sev: "warn", node: null, title: "No eval set attached", why: "Without evals, nobody can tell whether a change makes the system better, and the rating cannot score quality.", fixLabel: "Bootstrap from last 50 runs + 20 written cases", fix: () => { S.g.system.evalSet = "Bootstrapped · 50 recent runs + 20 written cases"; return null; } });
+    // G-01 orphans
+    g.nodes.forEach((n) => { if (!A.out[n.id].length && !A.inn[n.id].length) add({ rule: "G-01", sev: "info", node: n.id, title: `"${n.label}" is not connected`, why: "It will never run. Connect it from the inspector or remove it.", fixLabel: "Remove node", fix: () => { removeNode(n.id); return null; } }); });
+    const order = { error: 0, warn: 1, info: 2 };
+    return F.sort((a, b) => order[a.sev] - order[b.sev]);
+  }
+  function removeNode(id) { S.g.nodes = S.g.nodes.filter((n) => n.id !== id); S.g.edges = S.g.edges.filter((e) => e.from !== id && e.to !== id); if (S.sel === id) S.sel = null; }
+
+  // ---------------- formatting ----------------
+  const fc = (v) => (!Number.isFinite(v) ? "unbounded" : v === 0 ? "free" : v < 0.001 ? "<$0.001" : v < 1 ? "$" + v.toFixed(3) : "$" + v.toFixed(2));
+  const fl = (ms) => (!Number.isFinite(ms) ? "unbounded" : ms < 1000 ? Math.round(ms) + " ms" : ms < 60000 ? (ms / 1000).toFixed(1) + " s" : (ms / 60000).toFixed(1) + " min");
+  const trunc = (s, n) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
+
+  // ---------------- render ----------------
+  let A, F;
+  function renderAll(refit) {
+    A = analyze(S.g); F = lint(A);
+    renderStats(); renderCanvas(refit); renderInspector();
+  }
+  function renderStats() {
+    const e = F.filter((f) => f.sev === "error").length, w = F.filter((f) => f.sev === "warn").length, s = F.filter((f) => f.sev === "info").length;
+    const rating = Math.max(0, 100 - 18 * e - 7 * w - 3 * s);
+    const monthly = A.cost50 * S.g.system.runsPerDay * 30;
+    const cap = S.g.system.budget;
+    $("#stats").innerHTML = `
+      <div class="stat"><span class="label">Pre-flight rating</span><span class="value num ${rating >= 85 ? "ok" : rating >= 60 ? "warn" : "err"}">${rating}<small> / 100</small></span><span class="note">${e} error${e === 1 ? "" : "s"} · ${w} warning${w === 1 ? "" : "s"} · ${s} suggestion${s === 1 ? "" : "s"}</span></div>
+      <div class="stat"><span class="label">Cost per run</span><span class="value num">${fc(A.cost50)}</span><span class="note">p95 ${fc(A.cost95)}${Number.isFinite(A.cost95) && cap ? (A.cost95 > cap ? ` · <b style="color:var(--err)">over $${cap} cap</b>` : ` · under $${cap} cap`) : ""}</span></div>
+      <div class="stat"><span class="label">Agent time per run</span><span class="value num">${fl(A.lat50)}</span><span class="note">p95 ${fl(A.lat95)}${A.hasApproval ? " · plus human wait" : ""}</span></div>
+      <div class="stat"><span class="label">Monthly at ${S.g.system.runsPerDay.toLocaleString("en-US")} runs/day</span><span class="value num">${monthly >= 100 ? "$" + Math.round(monthly).toLocaleString("en-US") : "$" + monthly.toFixed(2)}</span><span class="note">expected cost × runs × 30</span></div>
+      <div class="stat"><span class="label">Shape</span><span class="value num">${S.g.nodes.length}<small> nodes</small></span><span class="note">${A.loops.length} loop${A.loops.length === 1 ? "" : "s"} · ${S.g.nodes.filter((n) => n.type === "agent" || n.type === "harness").length} reasoning nodes</span></div>`;
+  }
+
+  function bounds() {
+    const xs = S.g.nodes.map((n) => n.x), ys = S.g.nodes.map((n) => n.y);
+    return { w: Math.max(700, Math.max(...xs, 0) + W + 40), h: Math.max(340, Math.max(...ys, 0) + H + 40) };
+  }
+  let B = { w: 1000, h: 500 };
+  function renderCanvas(refit) {
+    if (refit || !dragging) B = bounds();
+    const svg = $("#cv");
+    if (S.fit && refit !== false) { const cw = $("#scroll").clientWidth - 4; S.zoom = Math.max(S.fitAll ? 0.35 : 0.74, Math.min(1.1, cw / B.w)); }
+    svg.setAttribute("viewBox", `0 0 ${B.w} ${B.h}`);
+    svg.style.width = Math.round(B.w * S.zoom) + "px"; svg.style.height = Math.round(B.h * S.zoom) + "px";
+    $("#zLbl").textContent = Math.round(S.zoom * 100) + "%";
+    const fnode = {}; F.forEach((f) => { if (f.node) { const cur = fnode[f.node]; if (!cur || (cur === "info") || (cur === "warn" && f.sev === "error")) fnode[f.node] = f.sev; } });
+    let edges = "";
+    S.g.edges.forEach((e, k) => {
+      const a = node(e.from), b = node(e.to); if (!a || !b) return;
+      const isBack = A.back.has(k);
+      let d, lx, ly;
+      if (isBack) {
+        const sx = a.x + W / 2, sy = a.y, tx = b.x + W / 2, ty = b.y; const top = Math.min(sy, ty) - 70;
+        d = `M${sx} ${sy} C${sx} ${top}, ${tx} ${top}, ${tx} ${ty - 2}`; lx = (sx + tx) / 2; ly = top + 14;
+      } else {
+        const sx = a.x + W, sy = a.y + H / 2, tx = b.x, ty = b.y + H / 2; const dx = Math.max(36, Math.abs(tx - sx) / 2);
+        d = `M${sx} ${sy} C${sx + dx} ${sy}, ${tx - dx} ${ty}, ${tx - 3} ${ty}`; lx = b.x + 4; ly = b.y - 7;
+      }
+      edges += `<path class="edge${isBack ? " back" : ""}" d="${d}" marker-end="url(#${isBack ? "arB" : "ar"})"/>`;
+      if (e.label) edges += `<text class="edge-l" x="${lx}" y="${ly}" text-anchor="${isBack ? "middle" : "start"}">${esc(e.label)}${e.p != null && node(e.from).type === "router" ? " " + Math.round(e.p * 100) + "%" : ""}</text>`;
+    });
+    const nodes = S.g.nodes.map((n) => {
+      const t = TYPES[n.type]; const per = A.per[n.id] || { c: 0, l: 0, it: 0, p: 0 };
+      let sub = "";
+      if (n.type === "agent") sub = (MODELS[n.cfg.model] || {}).short || "";
+      else if (n.type === "harness") sub = n.cfg.harness + (n.cfg.sandbox ? " · sandbox" : " · NO SANDBOX");
+      else if (["tool", "output", "data", "knowledge"].includes(n.type)) sub = (n.cfg.connector || "") + (n.cfg.write ? ` · write T${n.cfg.tier}` : "");
+      else if (n.type === "guardrail") sub = (n.cfg.types || []).map((x) => x === "pii" ? "PII" : x === "injection" ? "injection" : x === "grounded" ? "grounded" : "schema").join(" + ");
+      else if (n.type === "memory") sub = n.cfg.op + " · " + n.cfg.scope;
+      else if (n.type === "trigger") sub = n.cfg.source;
+      else if (n.type === "exit") sub = `≤${n.cfg.max} iter · $${n.cfg.budget}`;
+      else if (n.type === "approval") sub = n.cfg.approver;
+      let meta = n.type === "approval" ? "waits for a person" : n.type === "trigger" ? (n.cfg.untrusted ? "untrusted input" : "trusted input") + (n.cfg.pii ? " · PII" : "") : `${fc(per.c)} · ${fl(per.l)}`;
+      if (per.p > 0 && per.p < 0.999 && !["approval", "trigger"].includes(n.type)) meta += ` · ${Math.round(per.p * 100)}%`;
+      const sev = fnode[n.id];
+      return `<g class="nd${n.id === S.sel ? " sel" : ""}${t.kind === "govern" ? " gov" : ""}${S.flash === n.id ? " flash" : ""}" data-id="${n.id}" transform="translate(${n.x},${n.y})" tabindex="0" role="button" aria-label="${esc(t.label + ": " + n.label)}">
+        <rect class="nd-bg" width="${W}" height="${H}" rx="8"/>
+        <rect x="0" y="0" width="5" height="${H}" rx="2" fill="var(--k-${t.kind})"/>
+        <text class="nd-kind" x="13" y="16">${esc(trunc((t.label + (sub ? " · " + sub : "")).toUpperCase(), 25))}</text>
+        <text class="nd-label" x="13" y="34">${esc(trunc(n.label, 20))}</text>
+        <text class="nd-meta" x="13" y="50">${esc(trunc(meta, 23))}</text>
+        ${sev ? `<circle class="mk ${sev}" cx="${W - 1}" cy="1" r="8"/><text class="mk-t" x="${W - 1}" y="4.5" text-anchor="middle">${sev === "info" ? "i" : "!"}</text>` : ""}
+        ${per.it ? `<text class="nd-loop" x="${W - 8}" y="${H - 8}" text-anchor="end">↻ ×${per.it}</text>` : ""}
+      </g>`;
+    }).join("");
+    svg.innerHTML = `<defs>
+      <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="var(--line-strong)"/></marker>
+      <marker id="arB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="var(--accent)"/></marker></defs>
+      <g>${edges}</g><g>${nodes}</g>`;
+  }
+
+  // ---------------- inspector ----------------
+  function renderInspector() {
+    const tabs = $$("#inspTabs button");
+    tabs[1].textContent = S.sel ? "Node" : "System";
+    tabs.forEach((b) => b.setAttribute("aria-selected", String(b.dataset.t === S.tab)));
+    $("#insp").innerHTML = S.tab === "preflight" ? preflightHtml() : S.sel ? nodeHtml(node(S.sel)) : systemHtml();
+  }
+  function preflightHtml() {
+    if (!F.length) return `<div class="empty-ok"><b>Pre-flight passes</b><span class="small">No errors, warnings or suggestions. This graph can be promoted to staging.</span></div>${S.hist.length ? `<p class="help">Use Undo to step back through the fixes.</p>` : ""}`;
+    return `<p class="help">Rules run on every change. Select a finding's node to inspect it, or apply the suggested fix.</p>` + F.map((f, i) => `
+      <div class="fd ${f.sev}">
+        <div class="fd-top"><span class="pill ${f.sev === "error" ? "err" : f.sev === "warn" ? "warn" : "info"}">${f.sev === "info" ? "suggestion" : f.sev === "warn" ? "warning" : "error"}</span><span class="rule">${f.rule}</span></div>
+        <b>${esc(f.title)}</b>
+        <p>${esc(f.why)}</p>
+        <div class="row">
+          <button class="btn sm primary" data-fix="${i}">${esc(f.fixLabel)}</button>
+          ${f.alt ? `<button class="btn sm" data-alt="${i}">${esc(f.alt.label)}</button>` : ""}
+          ${f.node ? `<button class="btn sm ghost" data-goto="${f.node}">Show node</button>` : ""}
+        </div>
+      </div>`).join("");
+  }
+  const opt = (v, cur, label) => `<option value="${esc(v)}"${String(v) === String(cur) ? " selected" : ""}>${esc(label || v)}</option>`;
+  function systemHtml() {
+    const s = S.g.system;
+    return `<div class="stack" style="gap:2px"><span class="eyebrow">System settings</span><h3>${esc(s.name)}</h3><span class="small muted">${esc(s.team)}</span></div>
+      <div class="stack" style="gap:6px"><span class="eyebrow">Goals</span><ul class="plain small">${s.goals.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>${s.goals.length > 1 ? `<p class="help">Several goals run in parallel branches and share the run budget. See Run & observe.</p>` : ""}</div>
+      <div class="fields">
+        <label class="field"><span><span>Runs per day</span><output>${s.runsPerDay.toLocaleString("en-US")}</output></span><input type="range" id="sysRuns" min="10" max="5000" step="10" value="${s.runsPerDay}"></label>
+        <label class="field"><span>Budget cap per run ($)</span><input type="number" id="sysBudget" min="0" step="0.05" value="${s.budget}"></label>
+        <label class="field"><span>Checkpoints</span><select id="sysCp">${opt("every", s.checkpoint, "At every node boundary (default)")}${opt("approvals", s.checkpoint, "Only before approvals")}${opt("off", s.checkpoint, "Off")}</select></label>
+        <label class="field"><span>Eval set</span><select id="sysEval">${opt("", s.evalSet, "None attached")}${s.evalSet ? opt(s.evalSet, s.evalSet) : ""}${opt("Bootstrapped · 50 recent runs + 20 written cases", s.evalSet)}</select></label>
+      </div>
+      <p class="help">Select any node on the canvas to edit it.</p>`;
+  }
+  function nodeHtml(n) {
+    const t = TYPES[n.type], c = n.cfg;
+    let f = "";
+    const sel = (id, label, options, cur) => `<label class="field"><span>${label}</span><select data-k="${id}">${options.map(([v, l]) => opt(v, cur, l)).join("")}</select></label>`;
+    const num = (id, label, v, step) => `<label class="field"><span>${label}</span><input type="number" data-k="${id}" value="${v}" step="${step || 1}" min="0"></label>`;
+    const chk = (id, label, v) => `<label class="switch"><input type="checkbox" data-k="${id}"${v ? " checked" : ""}> ${label}</label>`;
+    if (n.type === "agent") {
+      f += sel("model", "Model", Object.entries(MODELS).map(([k, m]) => [k, m.name]), c.model);
+      f += sel("task", "Task type", [["classify", "Classify"], ["extract", "Extract"], ["draft", "Draft text"], ["reason", "Reason and decide"]], c.task);
+      f += `<div class="two">${num("tin", "Input tokens", c.tin, 100)}${num("tout", "Output tokens", c.tout, 10)}</div>`;
+      f += chk("writeTools", "Has tools that can write", c.writeTools);
+      if (A.loopOf[n.id] != null) f += chk("compact", "Compact context between iterations", c.compact);
+      f += `<p class="help">Boundary: ${(MODELS[c.model] || {}).boundary === "tenant" ? "inside our tenant" : "external processor (PII not allowed)"}.</p>`;
+    } else if (n.type === "harness") {
+      f += sel("harness", "Harness", [["Claude Code", "Claude Code"], ["Codex", "Codex"]], c.harness);
+      f += chk("sandbox", "Run in a throwaway sandbox", c.sandbox);
+      f += sel("egress", "Network egress", [["none", "None"], ["allowlist", "Allowlist: registries + Git host"], ["open", "Open"]], c.egress);
+      f += sel("scope", "Write scope", [["branch", "New branch only"], ["repo", "Whole repository"]], c.scope);
+      f += `<div class="two">${num("session", "Cost per session ($)", c.session, 0.05)}${num("lat", "Typical time (ms)", c.lat, 1000)}</div>`;
+    } else if (["tool", "output", "data"].includes(n.type)) {
+      f += `<label class="field"><span>Connector</span><input type="text" data-k="connector" value="${esc(c.connector)}"></label>`;
+      f += chk("write", "Writes to the target", c.write);
+      if (c.write) f += sel("tier", "Write risk tier", [[1, "1 · reversible, internal"], [2, "2 · customer-visible or shared"], [3, "3 · money moves or data is deleted"]], c.tier);
+      if (n.type !== "output") f += chk("pii", "Output can contain PII", c.pii);
+    } else if (n.type === "knowledge") {
+      f += `<label class="field"><span>Connector</span><input type="text" data-k="connector" value="${esc(c.connector)}"></label>` + chk("pii", "Documents can contain PII", c.pii);
+    } else if (n.type === "memory") {
+      f += sel("op", "Operation", [["read", "Read"], ["write", "Write"]], c.op) + sel("scope", "Scope", [["run", "This run"], ["system", "This system"], ["team", "Whole team"], ["org", "Organisation"]], c.scope) + chk("pii", "May hold PII", c.pii);
+    } else if (n.type === "trigger") {
+      f += `<label class="field"><span>Source</span><input type="text" data-k="source" value="${esc(c.source)}"></label>` + chk("untrusted", "Payload is untrusted (written by outsiders)", c.untrusted) + chk("pii", "Payload can contain PII", c.pii);
+    } else if (n.type === "code") {
+      f += `<label class="field"><span>Python</span><textarea data-k="code" rows="8" spellcheck="false">${esc(c.code)}</textarea></label>` + chk("untrusted", "Output carries untrusted content", c.untrusted);
+    } else if (n.type === "router") {
+      f += chk("llm", "Use a small model to choose the branch", c.llm) + `<p class="help">Edit branch labels and shares below. Shares are normalised.</p>`;
+    } else if (n.type === "exit") {
+      f += `<label class="field"><span>Success test</span><input type="text" data-k="success" value="${esc(c.success)}"></label><div class="two">${num("expected", "Expected iterations", c.expected)}${num("max", "Max iterations", c.max)}</div>${num("budget", "Budget for the loop ($)", c.budget, 0.05)}`;
+    } else if (n.type === "approval") {
+      f += `<label class="field"><span>Approver group</span><input type="text" data-k="approver" value="${esc(c.approver)}"></label><label class="field"><span>Timeout and fallback</span><input type="text" data-k="timeout" value="${esc(c.timeout)}" placeholder="e.g. 4h, then escalate"></label>`;
+    } else if (n.type === "guardrail") {
+      f += Object.entries(GUARD).map(([k, l]) => `<label class="switch"><input type="checkbox" data-g="${k}"${(c.types || []).includes(k) ? " checked" : ""}> ${l}</label>`).join("");
+    }
+    const outs = A.out[n.id].map((k) => ({ k, e: S.g.edges[k] }));
+    const isR = n.type === "router";
+    const targets = S.g.nodes.filter((m) => m.id !== n.id && !outs.some((o) => o.e.to === m.id));
+    return `<div class="stack" style="gap:4px"><span class="kind k-${t.kind}">${t.label}</span><input type="text" data-k="__label" value="${esc(n.label)}" aria-label="Node name" style="font-family:var(--f-display);font-size:18px;font-weight:650"></div>
+      <div class="fields">${f}</div>
+      <div class="stack" style="gap:6px"><span class="eyebrow">Forecast for this node</span><span class="small">${fc(A.per[n.id].c)} and ${fl(A.per[n.id].l)} per run${A.per[n.id].it ? `, ×${A.per[n.id].it} iterations` : ""}${A.per[n.id].p < 0.999 ? `, on ${Math.round(A.per[n.id].p * 100)}% of runs` : ""}</span></div>
+      <div class="stack" style="gap:6px"><span class="eyebrow">Outgoing connections</span>
+        <div class="edges-list">${outs.length ? outs.map(({ k, e }) => `<div class="edge-row${isR ? " router" : ""}"><span>→ ${esc(node(e.to).label)}${A.back.has(k) ? ' <span class="pill accent">loop</span>' : ""}</span>${isR ? `<input type="text" data-el="${k}" value="${esc(e.label)}" aria-label="Branch label"><input type="number" data-ep="${k}" value="${e.p == null ? "" : e.p}" step="0.05" min="0" max="1" aria-label="Branch share">` : ""}<button class="btn sm ghost" data-del="${k}" aria-label="Remove connection">Remove</button></div>`).join("") : '<span class="help">None yet.</span>'}</div>
+        ${targets.length ? `<div class="row" style="gap:6px;flex-wrap:nowrap"><select id="connTo" aria-label="Connect to">${targets.map((m) => opt(m.id, "", m.label)).join("")}</select><button class="btn sm" id="connAdd">Connect</button></div>` : ""}
+      </div>
+      <div class="row"><button class="btn sm danger" id="delNode">Delete node</button><button class="btn sm ghost" id="desel">Back to system</button></div>`;
+  }
+
+  // ---------------- events ----------------
+  $("#inspTabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; S.tab = b.dataset.t; renderInspector(); });
+  $("#insp").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.fix != null || b.dataset.alt != null) {
+      const f = F[+(b.dataset.fix != null ? b.dataset.fix : b.dataset.alt)]; snapshot();
+      const id = (b.dataset.fix != null ? f.fix : f.alt.fn)();
+      S.flash = id || null; renderAll(true); toast(`Applied: ${b.dataset.fix != null ? f.fixLabel : f.alt.label}`);
+      setTimeout(() => { S.flash = null; renderCanvas(false); }, 1400);
+    } else if (b.dataset.goto) { S.sel = b.dataset.goto; S.tab = "inspect"; renderAll(false); scrollToNode(S.sel); }
+    else if (b.dataset.del != null) { snapshot(); S.g.edges.splice(+b.dataset.del, 1); renderAll(false); }
+    else if (b.id === "connAdd") { snapshot(); S.g.edges.push({ from: S.sel, to: $("#connTo").value, label: node(S.sel).type === "router" ? "branch" : "", p: node(S.sel).type === "router" ? 0.5 : null }); renderAll(true); }
+    else if (b.id === "delNode") { snapshot(); removeNode(S.sel); S.tab = "preflight"; renderAll(true); }
+    else if (b.id === "desel") { S.sel = null; renderAll(false); }
+  });
+  $("#insp").addEventListener("change", (e) => {
+    const el = e.target; const s = S.g.system;
+    if (el.id === "sysRuns") { s.runsPerDay = +el.value; renderAll(false); return; }
+    if (el.id === "sysBudget") { s.budget = +el.value; renderAll(false); return; }
+    if (el.id === "sysCp") { snapshot(); s.checkpoint = el.value; renderAll(false); return; }
+    if (el.id === "sysEval") { snapshot(); s.evalSet = el.value; renderAll(false); return; }
+    const n = node(S.sel); if (!n) return;
+    snapshot();
+    if (el.dataset.k === "__label") n.label = el.value.trim() || n.label;
+    else if (el.dataset.k) { const k = el.dataset.k; n.cfg[k] = el.type === "checkbox" ? el.checked : el.type === "number" || k === "tier" ? +el.value : el.value; }
+    else if (el.dataset.g) { const set = new Set(n.cfg.types || []); el.checked ? set.add(el.dataset.g) : set.delete(el.dataset.g); n.cfg.types = [...set]; }
+    else if (el.dataset.el != null) S.g.edges[+el.dataset.el].label = el.value;
+    else if (el.dataset.ep != null) S.g.edges[+el.dataset.ep].p = el.value === "" ? null : Math.max(0, Math.min(1, +el.value));
+    renderAll(false);
+  });
+  $("#insp").addEventListener("input", (e) => { if (e.target.id === "sysRuns") { e.target.previousElementSibling.querySelector("output").textContent = (+e.target.value).toLocaleString("en-US"); S.g.system.runsPerDay = +e.target.value; A = analyze(S.g); renderStats(); } });
+
+  // palette
+  $("#palette").innerHTML = PALETTE.map(([g, types]) => `<div class="pal-group"><span class="eyebrow">${g}</span>${types.map((t) => `<button class="pal-btn" data-add="${t}" style="--kc:var(--k-${TYPES[t].kind})"><i></i>${TYPES[t].label}</button>`).join("")}</div>`).join("");
+  $("#palette").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-add]"); if (!b) return; snapshot();
+    const type = b.dataset.add; let x = 24, y = B.h - H - 24;
+    const free = (x, y) => !S.g.nodes.some((n) => Math.abs(n.x - x) < W + 10 && Math.abs(n.y - y) < H + 14);
+    let tries = 0; while (!free(x, y) && tries < 40) { x += SP; if (x > B.w - W) { x = 24; y += H + 24; } tries++; }
+    const n = newNode(type, "New " + TYPES[type].label.toLowerCase(), {}, x, y);
+    S.sel = n.id; S.tab = "inspect"; S.flash = n.id; renderAll(true); scrollToNode(n.id);
+    setTimeout(() => { S.flash = null; renderCanvas(false); }, 1400);
+  });
+
+  // dragging and selecting
+  const svg = $("#cv"); let dragging = null;
+  const svgPt = (e) => { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); };
+  svg.addEventListener("pointerdown", (e) => {
+    const g = e.target.closest(".nd");
+    if (!g) { if (S.sel) { S.sel = null; renderAll(false); } return; }
+    const n = node(g.dataset.id); const p = svgPt(e);
+    dragging = { id: n.id, dx: p.x - n.x, dy: p.y - n.y, sx: e.clientX, sy: e.clientY, moved: false, snap: JSON.stringify(S.g) };
+    svg.setPointerCapture(e.pointerId);
+  });
+  svg.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    if (!dragging.moved && Math.hypot(e.clientX - dragging.sx, e.clientY - dragging.sy) < 4) return;
+    dragging.moved = true;
+    const p = svgPt(e); const n = node(dragging.id);
+    n.x = Math.max(0, Math.round((p.x - dragging.dx) / 4) * 4); n.y = Math.max(0, Math.round((p.y - dragging.dy) / 4) * 4);
+    renderCanvas(false);
+  });
+  const endDrag = (e) => {
+    if (!dragging) return; const d = dragging; dragging = null;
+    if (d.moved) { S.hist.push(d.snap); renderCanvas(true); }
+    else { S.sel = d.id; S.tab = "inspect"; renderAll(false); }
+  };
+  svg.addEventListener("pointerup", endDrag); svg.addEventListener("pointercancel", endDrag);
+  svg.addEventListener("keydown", (e) => { const g = e.target.closest(".nd"); if (g && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); S.sel = g.dataset.id; S.tab = "inspect"; renderAll(false); } });
+  function scrollToNode(id) { const n = node(id); if (!n) return; const sc = $("#scroll"); sc.scrollTo({ left: Math.max(0, n.x * S.zoom - sc.clientWidth / 2), top: Math.max(0, n.y * S.zoom - sc.clientHeight / 2), behavior: "smooth" }); }
+
+  // toolbar
+  $("#zIn").onclick = () => { S.fit = false; S.zoom = Math.min(1.6, S.zoom + 0.1); renderCanvas(false); };
+  $("#zOut").onclick = () => { S.fit = false; S.zoom = Math.max(0.4, S.zoom - 0.1); renderCanvas(false); };
+  $("#zFit").onclick = () => { S.fit = true; S.fitAll = true; renderCanvas(true); S.fitAll = false; };
+  $("#undo").onclick = () => { if (!S.hist.length) { toast("Nothing to undo"); return; } S.g = JSON.parse(S.hist.pop()); if (S.sel && !node(S.sel)) S.sel = null; renderAll(true); };
+  $("#reset").onclick = () => { load(S.key); toast("Template reset"); };
+  window.addEventListener("resize", () => { if (S.fit) renderCanvas(true); });
+
+  // spec export
+  function yamlVal(v) { if (Array.isArray(v)) return "[" + v.map(yamlVal).join(", ") + "]"; if (typeof v === "string") return /^[\w .·\-+/()]+$/.test(v) && v.trim() === v && v !== "" ? v : JSON.stringify(v); return String(v); }
+  function spec() {
+    const s = S.g.system;
+    let y = `apiVersion: trellis.dev/v1alpha1\nkind: AgentSystem\nmetadata:\n  name: ${s.name}\n  team: ${yamlVal(s.team)}\nspec:\n  goals:\n${s.goals.map((x) => "    - " + yamlVal(x)).join("\n")}\n  runtime:\n    checkpoint: ${s.checkpoint}\n    budget_per_run_usd: ${s.budget}\n  evals:\n    set: ${s.evalSet ? yamlVal(s.evalSet) : "null"}\n  policy:\n    inherit: [org/default, team/${s.team.toLowerCase().replace(/[^a-z0-9]+/g, "-")}]\n  nodes:\n`;
+    S.g.nodes.forEach((n) => {
+      y += `    - id: ${n.id}\n      type: ${n.type}\n      name: ${yamlVal(n.label)}\n`;
+      Object.entries(n.cfg).forEach(([k, v]) => { if (k === "code") { y += `      code: |\n${String(v).split("\n").map((l) => "        " + l).join("\n")}\n`; } else y += `      ${k}: ${yamlVal(v)}\n`; });
+    });
+    y += `  edges:\n` + S.g.edges.map((e) => `    - { from: ${e.from}, to: ${e.to}${e.label ? ", when: " + yamlVal(e.label) : ""}${e.p != null ? ", share: " + e.p : ""} }`).join("\n");
+    return y;
+  }
+  $("#export").onclick = () => {
+    const text = spec();
+    const m = openModal(`<header><div class="stack" style="gap:2px"><span class="eyebrow">Graph as code</span><h3>${esc(S.g.system.name)}.trellis.yaml</h3></div><button class="btn sm ghost" data-close>Close</button></header>
+      <div><p class="small muted" style="margin-bottom:10px">This is what the canvas edits. Teams can write it by hand, review it in a pull request and run <code>trellis preflight</code> on it in CI.</p><pre class="code" id="specText"></pre></div>
+      <footer><span class="small muted">${S.g.nodes.length} nodes · ${S.g.edges.length} edges</span><button class="btn sm primary" id="copySpec">Copy</button></footer>`);
+    m.querySelector("#specText").textContent = text;
+    m.querySelector("#copySpec").onclick = () => copyText(text);
+  };
+
+  // templates
+  $("#tmplSeg").innerHTML = Object.entries(TEMPLATES).map(([k, t]) => `<button data-k="${k}">${t.tab}</button>`).join("");
+  $("#tmplSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) select(b.dataset.k); });
+  function select(k) {
+    $$("#tmplSeg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.k === k)));
+    $("#tmplNote").textContent = TEMPLATES[k].note;
+    load(k);
+  }
+  const h = (location.hash || "").slice(1);
+  select(TEMPLATES[h] ? h : "triage");
+})();
+</script>
+</body>
+</html>

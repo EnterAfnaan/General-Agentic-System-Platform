@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trellis · Govern</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .gw svg { width: 100%; height: auto; display: block; }
+  .gw .box { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.4; }
+  .gw .gate { fill: var(--k-govern); }
+  .gw .gate-t { fill: var(--bg); font: 600 13px var(--f-body); }
+  .gw .gate-s { fill: var(--bg); font: 10.5px var(--f-mono); opacity: .75; }
+  .gw .ln { stroke: var(--line-strong); stroke-width: 1.4; fill: none; }
+  .gw .lbl { font: 600 12.5px var(--f-body); fill: var(--ink); }
+  .gw .sub { font: 10.5px var(--f-mono); fill: var(--muted); }
+  .layers { display: grid; gap: 8px; }
+  .layer { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 14px; align-items: start; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); cursor: pointer; text-align: left; font: inherit; color: inherit; }
+  .layer[aria-pressed="true"] { border-color: var(--k-govern); box-shadow: inset 4px 0 0 var(--k-govern); }
+  .layer .who { font-family: var(--f-mono); font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+  .layer b { font-family: var(--f-display); font-size: 18px; display: block; }
+  .layer p { font-size: 13.5px; color: var(--muted); }
+  .layer:nth-child(2) { margin-left: 18px; } .layer:nth-child(3) { margin-left: 36px; } .layer:nth-child(4) { margin-left: 54px; }
+  @media (max-width: 640px) { .layer { grid-template-columns: minmax(0, 1fr); gap: 4px; } .layer:nth-child(n) { margin-left: 0; } }
+  .psim { display: grid; grid-template-columns: minmax(0, 330px) minmax(0, 1fr); gap: 18px; align-items: start; }
+  @media (max-width: 880px) { .psim { grid-template-columns: minmax(0, 1fr); } }
+  .decision { display: grid; gap: 12px; }
+  .verdict { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--r); font-family: var(--f-display); font-size: 24px; font-weight: 700; }
+  .verdict.allow { background: var(--ok-soft); color: var(--ok); }
+  .verdict.oblig { background: var(--info-soft); color: var(--info); }
+  .verdict.approve { background: var(--warn-soft); color: var(--warn); }
+  .verdict.deny { background: var(--err-soft); color: var(--err); }
+  .matched { display: grid; gap: 8px; }
+  .matched div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; font-size: 14px; }
+  .matched code { background: none; padding: 0; color: var(--accent); }
+  .gr-col { display: grid; gap: 10px; align-content: start; }
+  .gr { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: var(--surface); display: grid; gap: 4px; }
+  .gr b { font-size: 14.5px; }
+  .gr p { font-size: 13px; color: var(--muted); }
+  .gr .m { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .matrix-tbl td.c { text-align: center; }
+  .card-mock { border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); overflow: hidden; max-width: 460px; }
+  .card-mock header { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+  .card-mock .body { padding: 14px 16px; display: grid; gap: 10px; font-size: 14px; }
+  .card-mock .act { font-family: var(--f-mono); font-size: 12.5px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+  .card-mock footer { padding: 12px 16px; border-top: 1px solid var(--line); display: flex; gap: 8px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div class="shell" data-page="govern">
+  <nav id="rail" class="rail" aria-label="Prototype pages"></nav>
+  <main class="main">
+    <div class="page">
+      <header class="page-head">
+        <p class="eyebrow">Across every stage · Govern</p>
+        <h1>Policy is part of the graph, and it is enforced at the edges</h1>
+        <p class="lede">Platform and security teams write policy once. Every system inherits it. Pre-flight checks it at design time, and three gateways enforce it at run time, whatever framework or harness made the call. Agents never hold credentials for the systems they touch. The gateways do.</p>
+      </header>
+
+      <section class="section" aria-labelledby="gw-h">
+        <div class="section-head">
+          <p class="eyebrow">Where enforcement happens</p>
+          <h2 id="gw-h">Every model call, tool call and data read passes a gateway</h2>
+          <p>This is what makes governance work across frameworks. A LangGraph agent, an Agent Framework workflow and Claude Code all reach models and tools through the same three doors, so the same rules apply to each.</p>
+        </div>
+        <div class="panel gw svg-wrap" style="padding:14px">
+          <svg viewBox="0 0 860 330" role="img" aria-label="Agents on the left reach models, tools and data on the right only through three Trellis gateways, backed by a policy engine and an audit log">
+            <text x="20" y="22" class="sub">AGENTS, ANY FRAMEWORK</text>
+            <g>
+              <rect class="box" x="20" y="36" width="190" height="44" rx="8"/><text x="34" y="56" class="lbl">Native Trellis graph</text><text x="34" y="71" class="sub">support-triage</text>
+              <rect class="box" x="20" y="92" width="190" height="44" rx="8"/><text x="34" y="112" class="lbl">LangGraph agent</text><text x="34" y="127" class="sub">imported · glass box</text>
+              <rect class="box" x="20" y="148" width="190" height="44" rx="8"/><text x="34" y="168" class="lbl">Agent Framework workflow</text><text x="34" y="183" class="sub">imported · glass box</text>
+              <rect class="box" x="20" y="204" width="190" height="44" rx="8" style="stroke-dasharray:5 4"/><text x="34" y="224" class="lbl">Claude Code / Codex</text><text x="34" y="239" class="sub">sandbox · black box</text>
+            </g>
+            <g class="ln"><path d="M210 58 C260 58 260 90 320 90"/><path d="M210 114 C260 114 260 150 320 150"/><path d="M210 170 C260 170 260 150 320 150"/><path d="M210 226 C260 226 260 210 320 210"/><path d="M210 58 C260 58 260 150 320 150"/><path d="M210 226 C260 226 260 90 320 90"/></g>
+            <rect class="gate" x="320" y="66" width="220" height="48" rx="8"/><text x="336" y="88" class="gate-t">Model gateway</text><text x="336" y="104" class="gate-s">boundary · redaction · budgets · cache</text>
+            <rect class="gate" x="320" y="126" width="220" height="48" rx="8"/><text x="336" y="148" class="gate-t">Tool &amp; MCP gateway</text><text x="336" y="164" class="gate-s">allowlist · args · tiers · approvals</text>
+            <rect class="gate" x="320" y="186" width="220" height="48" rx="8"/><text x="336" y="208" class="gate-t">Data gateway</text><text x="336" y="224" class="gate-s">read-only · row security · classes</text>
+            <rect class="box" x="320" y="262" width="104" height="44" rx="8"/><text x="334" y="282" class="lbl">Policy engine</text><text x="334" y="297" class="sub">OPA / Cedar</text>
+            <rect class="box" x="436" y="262" width="104" height="44" rx="8"/><text x="450" y="282" class="lbl">Audit log</text><text x="450" y="297" class="sub">append-only</text>
+            <g class="ln" style="stroke-dasharray:3 4"><path d="M372 262 V234"/><path d="M488 262 V234"/></g>
+            <g class="ln"><path d="M540 90 H640"/><path d="M540 150 H640"/><path d="M540 210 H640"/></g>
+            <text x="640" y="22" class="sub">WHAT THEY TOUCH</text>
+            <rect class="box" x="640" y="66" width="200" height="48" rx="8"/><text x="654" y="88" class="lbl">Models</text><text x="654" y="104" class="sub">in-tenant · processors</text>
+            <rect class="box" x="640" y="126" width="200" height="48" rx="8"/><text x="654" y="148" class="lbl">Tools and MCP servers</text><text x="654" y="164" class="sub">GitHub · Zendesk · refunds API</text>
+            <rect class="box" x="640" y="186" width="200" height="48" rx="8"/><text x="654" y="208" class="lbl">Databases and indexes</text><text x="654" y="224" class="sub">SQL · Postgres · vector stores</text>
+          </svg>
+        </div>
+        <div class="callout ink"><b>The honest limit</b><p>A harness running in a sandbox can still reason badly inside it. Trellis controls what leaves the sandbox: network egress, file scope, tool calls through the MCP gateway, and spend. It cannot inspect each thought.</p></div>
+      </section>
+
+      <section class="section" aria-labelledby="layers-h">
+        <div class="section-head">
+          <p class="eyebrow">Policy layers</p>
+          <h2 id="layers-h">Four layers. Lower layers can tighten, never loosen.</h2>
+          <p>A team cannot opt out of an org rule. It can file an exception that names an owner, a reason and an expiry date, and the exception is audited like any other change. Select a layer to see an example.</p>
+        </div>
+        <div class="split">
+          <div class="layers" id="layers"></div>
+          <div class="stack"><span class="eyebrow" id="layerFile"></span><pre class="code" id="layerYaml"></pre></div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="sim-h">
+        <div class="section-head">
+          <p class="eyebrow">Policy simulator</p>
+          <h2 id="sim-h">Ask the policy engine what it would decide</h2>
+          <p>This is the same question the gateways ask on every call. Change the action, the data and the environment, and see the decision, the rules that matched, the obligations attached and the audit record written.</p>
+        </div>
+        <div class="psim">
+          <div class="panel"><div class="panel-body" id="simForm"></div></div>
+          <div class="decision" id="simOut" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="gr-h">
+        <div class="section-head">
+          <p class="eyebrow">Guardrails</p>
+          <h2 id="gr-h">Guardrails are nodes, so they show up in the forecast</h2>
+          <p>Each guardrail has a cost, a latency and a failure behaviour, the same as any other node. Teams can see what safety costs instead of guessing.</p>
+        </div>
+        <div class="grid g3">
+          <div class="gr-col"><h3>On input</h3>
+            <div class="gr"><b>PII detection and redaction</b><p>Finds names, emails, card and account numbers and replaces them with stable tokens that can be restored downstream.</p><div class="m"><span class="pill">+120 ms</span><span class="pill">&lt;$0.001</span><span class="pill info">redact</span></div></div>
+            <div class="gr"><b>Injection screen</b><p>Classifies text from outsiders for embedded instructions before it reaches a node that can act.</p><div class="m"><span class="pill">+150 ms</span><span class="pill">&lt;$0.001</span><span class="pill warn">quarantine</span></div></div>
+            <div class="gr"><b>Topic and scope limits</b><p>Rejects requests outside the system's declared purpose, such as legal advice from a support bot.</p><div class="m"><span class="pill">+90 ms</span><span class="pill info">refuse politely</span></div></div>
+          </div>
+          <div class="gr-col"><h3>On output</h3>
+            <div class="gr"><b>Groundedness check</b><p>Every claim in a customer reply must be supported by a retrieved passage, or the reply goes back for another draft.</p><div class="m"><span class="pill">+900 ms</span><span class="pill">$0.004</span><span class="pill warn">redraft once</span></div></div>
+            <div class="gr"><b>Output schema</b><p>Structured outputs are validated against a JSON schema before any downstream node reads them.</p><div class="m"><span class="pill">+5 ms</span><span class="pill info">retry with error</span></div></div>
+            <div class="gr"><b>Secret and leakage scan</b><p>Blocks keys, connection strings and internal hostnames from leaving in a reply or a PR comment.</p><div class="m"><span class="pill">+40 ms</span><span class="pill err">block</span></div></div>
+          </div>
+          <div class="gr-col"><h3>On action</h3>
+            <div class="gr"><b>Tool allowlist and argument checks</b><p>An agent can call only the tools in its grant, with arguments that match the schema and value limits, such as refunds up to $500.</p><div class="m"><span class="pill">+3 ms</span><span class="pill err">block</span></div></div>
+            <div class="gr"><b>Read-only by default</b><p>Database connections open with read-only roles. A write needs a tier, a grant and usually a person.</p><div class="m"><span class="pill">0 ms</span><span class="pill err">block</span></div></div>
+            <div class="gr"><b>Spend caps and circuit breakers</b><p>Per run, per system and per team. When a cap trips, runs stop cleanly and the owner is paged.</p><div class="m"><span class="pill">0 ms</span><span class="pill err">stop run</span></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="ap-h">
+        <div class="section-head">
+          <p class="eyebrow">Approvals</p>
+          <h2 id="ap-h">Who must say yes, and what they see when asked</h2>
+          <p>Approval follows the write's risk tier and the environment. The request lands where the approver already works and shows exactly what will happen.</p>
+        </div>
+        <div class="split">
+          <div class="table-wrap">
+            <table class="matrix-tbl">
+              <thead><tr><th>Write tier</th><th class="c">dev</th><th class="c">staging</th><th class="c">prod</th></tr></thead>
+              <tbody>
+                <tr><td><b>1</b> · reversible, internal<br><span class="small muted">Jira ticket, PR comment</span></td><td class="c"><span class="pill ok">allow</span></td><td class="c"><span class="pill ok">allow</span></td><td class="c"><span class="pill ok">allow + log</span></td></tr>
+                <tr><td><b>2</b> · customer-visible or shared<br><span class="small muted">reply to a customer, change request</span></td><td class="c"><span class="pill ok">allow</span></td><td class="c"><span class="pill info">output check</span></td><td class="c"><span class="pill warn">approval or output check</span></td></tr>
+                <tr><td><b>3</b> · money moves, data deleted<br><span class="small muted">refund, merge to main, DROP</span></td><td class="c"><span class="pill info">sandbox target only</span></td><td class="c"><span class="pill warn">approval</span></td><td class="c"><span class="pill err">named approver</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card-mock" aria-label="Example approval card">
+            <header><span class="eyebrow">Approval · support-triage</span><span class="pill warn">Tier 3 · expires in 3 h 52 m</span></header>
+            <div class="body">
+              <b>Refund $86.40 to order #A-55107?</b>
+              <div class="act">refunds-api.issue_refund(order="A-55107", amount=86.40, reason="damaged_on_arrival")</div>
+              <div class="kv small"><dt>Evidence</dt><dd>Photo attached by customer; carrier marked "damaged"; 1st refund on this account</dd><dt>Policy</dt><dd>ORG-ACT-03 · refunds above $20 need a supervisor</dd><dt>Run so far</dt><dd>$0.011 · 6.2 s · checkpoint cp-4 saved</dd></div>
+            </div>
+            <footer><button class="btn sm ok" type="button" onclick="toast('Example only: approval recorded in the prototype')">Approve</button><button class="btn sm" type="button" onclick="toast('Example only: approver can change the amount before approving')">Edit amount</button><button class="btn sm danger" type="button" onclick="toast('Example only: run resumes on the rejection branch')">Reject</button></footer>
+          </div>
+        </div>
+        <div class="callout"><b>Approval fatigue is a signal, not a nuisance</b><p>When approvers say yes to 412 of 415 small refunds, Trellis proposes a policy change on the Learn page: auto-approve below $20 for verified customers. The policy owner decides. Trellis never relaxes a rule by itself.</p></div>
+      </section>
+
+      <section class="section" aria-labelledby="id-h">
+        <div class="section-head">
+          <p class="eyebrow">Identity and audit</p>
+          <h2 id="id-h">Every action has an owner and a record</h2>
+        </div>
+        <div class="split">
+          <div class="grid" style="grid-template-columns:minmax(0,1fr)">
+            <div class="card"><h4>Each system has its own identity</h4><p>A workload identity per system and environment, with only the grants its graph needs. No shared service account across teams.</p></div>
+            <div class="card"><h4>On behalf of the user, where there is one</h4><p>When a person starts a run, reads use their token, so row-level security and document permissions still apply to what the agent sees.</p></div>
+            <div class="card"><h4>Kill switches at three levels</h4><p>Pause one system, every system in a team, or all agent writes across the org. Paused runs keep their checkpoints and can resume.</p></div>
+          </div>
+          <div class="stack"><span class="eyebrow">One audit record</span>
+<pre class="code">{
+  <span class="k">"ts"</span>: <span class="s">"2026-10-25T09:41:07Z"</span>,
+  <span class="k">"system"</span>: <span class="s">"support-triage@v14"</span>,
+  <span class="k">"run"</span>: <span class="s">"run_7f3a9c"</span>, <span class="k">"node"</span>: <span class="s">"t12"</span>,
+  <span class="k">"identity"</span>: <span class="s">"wi-support-triage-prod"</span>,
+  <span class="k">"action"</span>: <span class="s">"refunds-api.issue_refund"</span>,
+  <span class="k">"tier"</span>: 3, <span class="k">"data_classes"</span>: [<span class="s">"pii"</span>],
+  <span class="k">"decision"</span>: <span class="s">"approved"</span>,
+  <span class="k">"approver"</span>: <span class="s">"support-supervisors/on-duty"</span>,
+  <span class="k">"policies"</span>: [<span class="s">"ORG-ACT-03"</span>, <span class="s">"TEAM-SUP-02"</span>],
+  <span class="k">"cost_usd"</span>: 0.0004, <span class="k">"latency_ms"</span>: 431,
+  <span class="k">"trace"</span>: <span class="s">"00-4bf92f35…-01"</span>
+}</pre>
+          </div>
+        </div>
+      </section>
+
+      <nav class="next-prev" aria-label="Previous and next pages">
+        <a href="learn.html"><span>← Stage 5</span><b>Learn</b></a>
+        <a href="blueprint.html"><span>Next</span><b>Blueprint: how we would build it →</b></a>
+      </nav>
+    </div>
+  </main>
+</div>
+<script src="shared.js"></script>
+<script>
+(function () {
+  const LAYERS = [
+    ["org", "Organisation", "Platform and security", "Data boundaries, write tiers, spend ceilings, audit retention. Applies to every system.",
+`<span class="c"># policies/org/default.yaml · owner: platform-security</span>
+<span class="k">data</span>:
+  secret:       { models: deny, memory: deny }
+  pii:          { models: tenant_only_or_redact }
+  confidential: { boundary: [tenant, processor] }
+<span class="k">writes</span>:
+  tier_3: { approval: named_approver, env: [staging, prod] }
+  tier_2: { prod: approval_or_output_check }
+<span class="k">spend</span>:
+  per_team_month_usd: 25000
+  per_run_hard_cap_usd: 10
+<span class="k">audit</span>: { retain_days: 400 }`],
+    ["team", "Team", "Customer Support lead", "Tightens org rules for the team's own risk. Cannot loosen them.",
+`<span class="c"># policies/team/customer-support.yaml</span>
+<span class="k">inherit</span>: org/default
+<span class="k">writes</span>:
+  refunds-api.issue_refund:
+    max_amount_usd: 500          <span class="c"># tighter than the API allows</span>
+    approver_group: support-supervisors
+<span class="k">models</span>:
+  allow: [large-tenant, small-tenant]   <span class="c"># no external models</span>
+<span class="k">spend</span>: { per_team_month_usd: 4000 }`],
+    ["system", "System", "Builder, reviewed in a PR", "Per-system budget, checkpoint policy, approval timeouts and memory retention.",
+`<span class="c"># systems/support-triage.trellis.yaml (policy block)</span>
+<span class="k">policy</span>:
+  budget_per_run_usd: 0.25
+  checkpoint: every_node
+  approvals: { timeout: 4h, then: escalate_team_lead }
+  memory: { retain_days: 30, pii: tokens_only }`],
+    ["node", "Node", "Builder", "Narrow grants for a single step: tools, argument limits, the guardrails in front of it.",
+`<span class="c"># node t12 · Issue refund</span>
+<span class="k">grant</span>:
+  tools: [refunds-api.issue_refund]
+  args: { amount: { max: 200 } }
+<span class="k">before</span>: [approval:supervisor]
+<span class="k">exception</span>:
+  id: EXC-0192                     <span class="c"># expires 2026-12-31</span>
+  reason: "holiday backlog, raise to $300"
+  owner: support-lead`]
+  ];
+  const lay = $("#layers");
+  lay.innerHTML = LAYERS.map((l, i) => `<button class="layer" data-i="${i}" aria-pressed="${i === 0}"><span class="who">${l[2]}</span><span><b>${l[1]}</b><p>${l[3]}</p></span></button>`).join("");
+  function showLayer(i) { $$(".layer", lay).forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.i === i))); $("#layerYaml").innerHTML = LAYERS[i][4]; $("#layerFile").textContent = LAYERS[i][1] + " policy"; }
+  lay.addEventListener("click", (e) => { const b = e.target.closest(".layer"); if (b) showLayer(+b.dataset.i); });
+  showLayer(0);
+
+  // ---------- policy simulator ----------
+  const ACTIONS = {
+    model: "Call a model", read: "Read from a database", write: "Write to a system", customer: "Send a message to a customer",
+    code: "Run code in a sandbox", merge: "Merge code to main", memory: "Store in long-term memory"
+  };
+  const F = { action: "model", cls: "pii", env: "prod", boundary: "processor", tier: "3", actor: "auto" };
+  const sel = (k, label, opts) => `<label class="field"><span>${label}</span><select id="p_${k}">${Object.entries(opts).map(([v, l]) => `<option value="${v}"${F[k] === v ? " selected" : ""}>${l}</option>`).join("")}</select></label>`;
+  function form() {
+    $("#simForm").innerHTML =
+      sel("action", "Action", ACTIONS) +
+      sel("cls", "Most sensitive data involved", { public: "Public", internal: "Internal", confidential: "Confidential", pii: "Personal data (PII)", secret: "Secret (keys, credentials)" }) +
+      sel("env", "Environment", { dev: "dev", staging: "staging", prod: "prod" }) +
+      (F.action === "model" ? sel("boundary", "Where the model runs", { tenant: "Inside our tenant", processor: "Contracted processor", internet: "Public internet service" }) : "") +
+      (F.action === "write" ? sel("tier", "Write risk tier", { "1": "1 · reversible, internal", "2": "2 · customer-visible or shared", "3": "3 · money moves or data deleted" }) : "") +
+      sel("actor", "Who started the run", { auto: "Autonomous (trigger)", user: "A signed-in user" });
+  }
+  function decide() {
+    const r = [], ob = []; let level = 0; // 0 allow, 1 obligations, 2 approval, 3 deny
+    const up = (l) => { level = Math.max(level, l); };
+    const { action: a, cls, env, boundary, tier, actor } = F;
+    if (cls === "secret" && ["model", "memory", "customer"].includes(a)) { up(3); r.push(["ORG-DATA-01", "Secrets never reach models, memory or customers."]); }
+    if (a === "model") {
+      if (boundary === "internet" && ["confidential", "pii"].includes(cls)) { up(3); r.push(["ORG-DATA-03", "Confidential data and PII never go to public internet services."]); }
+      else if (cls === "pii" && boundary === "processor") { up(1); r.push(["ORG-DATA-02", "PII may reach a processor only after redaction."]); ob.push("Redact PII with reversible tokens before the call"); }
+      else if (cls === "internal" && boundary === "internet") { up(1); r.push(["ORG-DATA-04", "Internal data to public services is logged with purpose."]); ob.push("Tag the call with a purpose"); }
+      else r.push(["ORG-DATA-00", "Data class is allowed at this boundary."]);
+      ob.push("Count tokens against the system budget");
+    }
+    if (a === "read") {
+      if (actor === "user") { r.push(["ORG-READ-01", "Reads use the user's token, so row-level security applies."]); }
+      else if (cls === "pii") { up(1); r.push(["ORG-READ-02", "Autonomous PII reads are allowed with a purpose tag."]); ob.push("Record purpose and fields read"); }
+      else r.push(["ORG-READ-00", "Read-only role, no extra conditions."]);
+    }
+    if (a === "write") {
+      if (tier === "3") {
+        if (env === "dev") { up(1); r.push(["ORG-ACT-03d", "In dev, tier 3 writes go to sandbox targets only."]); ob.push("Route to the sandbox target"); }
+        else { up(2); r.push(["ORG-ACT-03", "Tier 3 writes need a named approver."]); ob.push(env === "prod" ? "Named approver from the owning team, 4 h timeout" : "Any team approver"); }
+      } else if (tier === "2") {
+        if (env === "prod") { up(2); r.push(["ORG-ACT-02", "Tier 2 writes in prod need approval or a passing output check."]); ob.push("Either an approval or a groundedness/schema check on the path"); }
+        else if (env === "staging") { up(1); r.push(["ORG-ACT-02s", "Tier 2 writes in staging need an output check."]); ob.push("Output check on the path"); }
+        else r.push(["ORG-ACT-02d", "Tier 2 writes allowed in dev."]);
+      } else r.push(["ORG-ACT-01", "Tier 1 writes are allowed and logged."]);
+    }
+    if (a === "customer") {
+      if (env === "prod") { up(2); r.push(["ORG-ACT-02", "Customer-visible output counts as tier 2."]); ob.push("Approval, or a groundedness check that passes"); }
+      else { up(1); r.push(["ORG-ACT-02s", "Outside prod, customer messages go to test inboxes."]); ob.push("Redirect to test recipients"); }
+      if (cls === "pii") ob.push("Only the customer's own data may appear");
+    }
+    if (a === "code") { up(1); r.push(["ORG-EXEC-01", "Code runs in a throwaway sandbox with no network unless declared."]); ob.push("Egress allowlist: package registries and Git host"); if (cls === "secret") { up(3); r.push(["ORG-DATA-01", "Secrets are not mounted into sandboxes."]); } }
+    if (a === "merge") { up(env === "dev" ? 1 : 2); r.push(["ENG-ACT-02", "Merges need a code owner's review, whatever wrote the code."]); ob.push(env === "dev" ? "Dev branches: CI must pass" : "Code owner approval, CI green"); }
+    if (a === "memory") {
+      if (cls === "pii") { up(1); r.push(["ORG-MEM-01", "PII in memory is stored as tokens with 30-day retention."]); ob.push("Tokenise PII, retain 30 days"); }
+      else if (cls !== "secret") r.push(["ORG-MEM-00", "Allowed, scoped to the team."]);
+    }
+    return { level, r, ob };
+  }
+  function out() {
+    const d = decide();
+    const V = [["allow", "Allow"], ["oblig", "Allow, with conditions"], ["approve", "Needs approval"], ["deny", "Deny"]][d.level];
+    const rec = { ts: "2026-10-25T09:41:07Z", system: "support-triage@v14", env: F.env, action: ACTIONS[F.action], data_class: F.cls, decision: V[1].toLowerCase(), policies: d.r.map((x) => x[0]), obligations: d.ob.length };
+    $("#simOut").innerHTML = `
+      <div class="verdict ${V[0]}">${V[1]}</div>
+      <div class="panel"><div class="panel-head"><span class="eyebrow">Rules that matched</span></div><div class="panel-body matched">${d.r.map((x) => `<div><code>${x[0]}</code><span>${x[1]}</span></div>`).join("")}</div></div>
+      ${d.ob.length ? `<div class="panel"><div class="panel-head"><span class="eyebrow">Obligations the gateway enforces</span></div><div class="panel-body"><ul class="list-check">${d.ob.map((o) => `<li>${o}</li>`).join("")}</ul></div></div>` : ""}
+      <div class="stack" style="gap:6px"><span class="eyebrow">Audit record written</span><pre class="code">${esc(JSON.stringify(rec, null, 2))}</pre></div>`;
+  }
+  $("#simForm").addEventListener("change", (e) => { const k = e.target.id.slice(2); F[k] = e.target.value; if (k === "action") form(); out(); });
+  form(); out();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trellis · Learn</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .flow svg { width: 100%; height: auto; display: block; }
+  .flow .st rect { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.4; }
+  .flow .st.h rect { fill: var(--k-govern); stroke: var(--k-govern); }
+  .flow .st.h text { fill: var(--bg); }
+  .flow .st text.n { font: 600 10.5px var(--f-mono); fill: var(--accent); }
+  .flow .st text.t { font: 600 13px var(--f-body); fill: var(--ink); }
+  .flow .st text.s { font: 10.5px var(--f-mono); fill: var(--muted); }
+  .flow .st.h text.s, .flow .st.h text.n { fill: var(--bg); opacity: .8; }
+  .inbox { display: grid; gap: 10px; }
+  .prop { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); overflow: hidden; }
+  .prop > button.head { all: unset; box-sizing: border-box; cursor: pointer; display: grid; grid-template-columns: 70px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px 16px; width: 100%; }
+  .prop > button.head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .prop .pid { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+  .prop .ttl b { display: block; font-size: 15px; line-height: 1.35; }
+  .prop .ttl span { font-size: 13px; color: var(--muted); }
+  .prop .body { padding: 0 16px 16px 98px; display: grid; gap: 12px; }
+  @media (max-width: 640px) { .prop > button.head { grid-template-columns: minmax(0, 1fr) auto; } .prop .pid { display: none; } .prop .body { padding: 0 16px 16px; } }
+  .prop .evid { font-size: 14px; color: var(--muted); max-width: 72ch; }
+  .prop table { font-size: 13.5px; }
+  .prop .facts { display: flex; gap: 6px; flex-wrap: wrap; }
+  .sk { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .sk { grid-template-columns: minmax(0, 1fr); } }
+  .cand td { vertical-align: middle; }
+  .cand tr { cursor: pointer; }
+  .cand tr:hover td { background: var(--surface-2); }
+  .cand tr[aria-selected="true"] td { background: var(--accent-soft); }
+  .cand .fail { color: var(--err); font-weight: 600; }
+  .cand .seq { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="shell" data-page="learn">
+  <nav id="rail" class="rail" aria-label="Prototype pages"></nav>
+  <main class="main">
+    <div class="page">
+      <header class="page-head">
+        <p class="eyebrow">Stage 5 · Learn</p>
+        <h1>Every run is evidence. Trellis turns it into changes a person approves.</h1>
+        <p class="lede">Learning here means the system improves its own graph, prompts, model choices, skills and even its policy, based on what its runs show. It does not mean model weights changing in production. Every proposal arrives with before-and-after eval results, and nothing reaches production without a person and a canary.</p>
+      </header>
+
+      <section class="section" aria-labelledby="loop-h">
+        <div class="section-head">
+          <p class="eyebrow">The learning loop</p>
+          <h2 id="loop-h">Seven steps from a run to a better system</h2>
+        </div>
+        <div class="panel flow svg-wrap" style="padding:12px">
+          <svg viewBox="0 0 980 190" role="img" aria-label="Runs, signals, datasets, evals, proposals, human review and canary rollout, feeding back into runs">
+            <defs><marker id="la" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="var(--line-strong)"/></marker>
+            <marker id="lb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="var(--accent)"/></marker></defs>
+            <g id="flowNodes"></g>
+            <path d="M920 104 C 920 170, 70 170, 70 104" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#lb)"/>
+            <text x="495" y="160" text-anchor="middle" class="svg-mono" style="font-size:11px;fill:var(--accent)">the improved system produces the next runs</text>
+          </svg>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="sig-h">
+        <div class="section-head">
+          <p class="eyebrow">Signals</p>
+          <h2 id="sig-h">Not all feedback is equal</h2>
+          <p>A thumbs-down is cheap to collect and easy to misread. An approver who edits the refund amount before approving has just written a labelled example. Trellis weighs signals by how much they can be trusted.</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Signal</th><th>How it is collected</th><th>Strength</th><th>Watch out for</th></tr></thead>
+            <tbody>
+              <tr><td><b>Approver edits and rejections</b></td><td>Every approval card records approve, edit or reject, with the diff</td><td><span class="pill ok">strong</span></td><td class="muted">Approvers who rubber-stamp. Watch approval time and rate per approver.</td></tr>
+              <tr><td><b>Downstream outcomes</b></td><td>Ticket reopened within 7 days, PR comment resolved or dismissed, incident recurred</td><td><span class="pill ok">strong</span></td><td class="muted">Delay: outcomes arrive days later and need joining back to the run.</td></tr>
+              <tr><td><b>Eval scores</b></td><td>Deterministic checks plus model-graded rubrics on sampled runs</td><td><span class="pill info">medium</span></td><td class="muted">Judge bias. Calibrate graders against human labels every month.</td></tr>
+              <tr><td><b>Traces</b></td><td>Cost, latency, retries, failures, guardrail trips per node</td><td><span class="pill info">objective</span></td><td class="muted">Says what was slow or expensive, not whether the answer was right.</td></tr>
+              <tr><td><b>Thumbs and comments</b></td><td>End users rate a reply or a report</td><td><span class="pill warn">weak</span></td><td class="muted">Sparse and skewed toward unhappy users. Never used alone.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="inbox-h">
+        <div class="section-head">
+          <p class="eyebrow">Proposal inbox</p>
+          <h2 id="inbox-h">What Trellis proposes this week</h2>
+          <p>Each proposal is a diff to a graph, a prompt, a model choice, a skill or a policy, plus the evidence for it. Open one to see the eval results, then start a canary or reject it.</p>
+        </div>
+        <div class="inbox" id="inbox"></div>
+      </section>
+
+      <section class="section" aria-labelledby="skill-h">
+        <div class="section-head">
+          <p class="eyebrow">Automatic skill creation</p>
+          <h2 id="skill-h">When a pattern keeps working, it becomes a skill</h2>
+          <p>Trellis mines traces for tool sequences that succeed again and again. When one passes the rules below, it is packaged as a skill draft and sent for review. Move the thresholds to see which candidates qualify, and select a row to see the draft.</p>
+        </div>
+        <div class="sk">
+          <div class="panel"><div class="panel-head"><span class="eyebrow">Promotion rules · team policy</span></div><div class="panel-body" id="rules"></div></div>
+          <div class="stack">
+            <div class="table-wrap">
+              <table class="cand">
+                <thead><tr><th>Candidate pattern</th><th class="c">Uses</th><th class="c">Success</th><th class="c">Systems</th><th class="c">Cost CV</th><th class="c">Held-out</th><th>Status</th></tr></thead>
+                <tbody id="cands"></tbody>
+              </table>
+            </div>
+            <div class="stack"><span class="eyebrow" id="draftTitle"></span><pre class="code" id="draft"></pre></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="safe-h">
+        <div class="section-head">
+          <p class="eyebrow">Keeping learning safe</p>
+          <h2 id="safe-h">Rules the learning loop itself must follow</h2>
+        </div>
+        <div class="grid">
+          <div class="card"><h4>Never straight to production</h4><p>Every change passes the eval gate, then a canary on a share of traffic, then a person promotes it. Rollback is one click and keeps the old version warm.</p></div>
+          <div class="card"><h4>Held-out sets stay held out</h4><p>Cases used to mine patterns or tune prompts are never used to judge them. Each system keeps a frozen test set that only grows.</p></div>
+          <div class="card"><h4>Resist poisoned feedback</h4><p>Signals are weighted by source. One user's 200 thumbs-downs count once. Proposals need agreement across signal types.</p></div>
+          <div class="card"><h4>Policy changes go to policy owners</h4><p>Trellis can say a rule looks too strict. Only the rule's owner can change it, and the change is audited like any other.</p></div>
+        </div>
+        <div class="callout"><b>Where fine-tuning fits</b><p>The same datasets can later train a small model for a high-volume node, such as intent classification once there are 20,000 labelled tickets. That is a separate, later track. The eval harness built here is what makes it safe to try.</p></div>
+      </section>
+
+      <nav class="next-prev" aria-label="Previous and next pages">
+        <a href="run.html"><span>← Stage 4</span><b>Run & observe</b></a>
+        <a href="govern.html"><span>Across every stage</span><b>Govern →</b></a>
+      </nav>
+    </div>
+  </main>
+</div>
+<script src="shared.js"></script>
+<script>
+(function () {
+  // ---------- loop diagram ----------
+  const FL = [["1", "Runs", "traces + state"], ["2", "Signals", "edits, outcomes"], ["3", "Datasets", "curated cases"], ["4", "Evals", "offline + online"], ["5", "Proposals", "diffs + evidence"], ["6", "Review", "a person decides", true], ["7", "Canary", "10% → 100%"]];
+  let g = "";
+  FL.forEach((f, i) => {
+    const x = 16 + i * 138, w = 116;
+    if (i) g += `<path d="M${x - 22} 74 H${x - 2}" stroke="var(--line-strong)" stroke-width="1.5" marker-end="url(#la)"/>`;
+    g += `<g class="st${f[3] ? " h" : ""}"><rect x="${x}" y="44" width="${w}" height="60" rx="9"/><text class="n" x="${x + 12}" y="62">${f[0]}</text><text class="t" x="${x + 12}" y="80">${f[1]}</text><text class="s" x="${x + 12}" y="96">${f[2]}</text></g>`;
+  });
+  $("#flowNodes").innerHTML = g;
+
+  // ---------- proposal inbox ----------
+  const PROPS = [
+    { id: "P-118", kind: "Model swap", sys: "support-triage", title: "Run “Classify intent” on Small · in-tenant", risk: "low", appr: "System owner",
+      ev: "Replayed 1,000 recent runs from their checkpoints with the smaller model, plus the 412-case golden set. The difference is inside the noise band of ±0.6 points.",
+      rows: [["Intent accuracy (412 cases)", "96.8%", "96.5%", "−0.3"], ["Node cost per run", "$0.0026", "$0.0001", "−96%"], ["System cost per month", "$703", "$620", "−12%"], ["Node latency p50", "1.4 s", "0.5 s", "−0.9 s"]] },
+    { id: "P-121", kind: "Graph change", sys: "support-triage", title: "Add a “billing dispute” route with its own knowledge filter", risk: "low", appr: "System owner + support lead",
+      ev: "37 tickets in 14 days went to “other”, and agents then hand-tagged them as billing disputes. The approver edits form a clear cluster. The candidate adds a router branch and filters the help-center search to billing articles.",
+      rows: [["Correct route (37 historical + 20 written)", "0%", "89%", "+89 pts"], ["Grounded replies on that slice", "61%", "86%", "+25 pts"], ["Tickets reaching the human queue", "15%", "12%", "−3 pts"]] },
+    { id: "P-124", kind: "Policy change", sys: "support-triage", title: "Auto-approve refunds under $20 for verified customers", risk: "medium", appr: "Policy owner (platform security)",
+      ev: "Supervisors approved 412 of 415 refunds under $20 in 30 days. All 3 rejections were unverified accounts. Trellis cannot change policy itself, so this goes to the rule's owner. The proposed rollout starts in shadow mode: log what would have been auto-approved for two weeks before it applies.",
+      rows: [["Approval rate under $20, verified", "99.3%", "n/a", ""], ["Supervisor hours per month", "23 h", "~2 h", "−21 h"], ["Median customer wait on small refunds", "25 min", "under 1 min", ""]] },
+    { id: "P-127", kind: "Prompt / context", sys: "incident-investigator", title: "Compact context between loop passes", risk: "low", appr: "System owner",
+      ev: "Input tokens grow about 1.5× per pass. Forked 120 past runs at their first checkpoint with compaction on. Same root cause in 117 of 120, against 118 of 120 for the baseline.",
+      rows: [["Correct root cause (120 replays)", "98.3%", "97.5%", "−0.8 pts"], ["Cost per run p50", "$0.079", "$0.062", "−22%"], ["Cost per run p95", "$0.21", "$0.14", "−33%"]] },
+    { id: "P-130", kind: "Skill promotion", sys: "incident-investigator → SRE team", title: "Promote “Diagnose a blocking chain” to a team-wide skill", risk: "low", appr: "SRE lead",
+      ev: "The same three-query sequence appears in 23 successful runs across 2 systems, with low cost variance. It passes 9 of 10 held-out scenarios from the injected-fault suite. Once promoted, any SRE system can call it.",
+      rows: [["Held-out scenarios passed", "n/a", "9 / 10", ""], ["Median steps to confirm a blocking cause", "5.4", "3.0", "−2.4"], ["Systems that would use it", "1", "4", "+3"]] }
+  ];
+  const ST = {}; PROPS.forEach((p) => { ST[p.id] = "new"; });
+  let open = "P-118";
+  function inbox() {
+    $("#inbox").innerHTML = PROPS.map((p) => {
+      const s = ST[p.id];
+      const pill = s === "new" ? '<span class="pill accent">new</span>' : s === "canary" ? '<span class="pill warn">canary 10%</span>' : s === "promoted" ? '<span class="pill ok">promoted</span>' : s === "shadow" ? '<span class="pill info">shadow mode</span>' : '<span class="pill">rejected</span>';
+      const isOpen = open === p.id;
+      let actions = "";
+      if (s === "new") actions = p.kind === "Policy change"
+        ? `<button class="btn sm primary" data-a="shadow" data-p="${p.id}">Send to policy owner (shadow mode)</button><button class="btn sm danger" data-a="reject" data-p="${p.id}">Reject</button>`
+        : `<button class="btn sm primary" data-a="canary" data-p="${p.id}">Start canary on 10%</button><button class="btn sm danger" data-a="reject" data-p="${p.id}">Reject</button>`;
+      else if (s === "canary") actions = `<span class="small muted">Canary after 48 h: metrics holding inside the eval band.</span><button class="btn sm ok" data-a="promote" data-p="${p.id}">Promote to 100%</button><button class="btn sm" data-a="rollback" data-p="${p.id}">Roll back</button>`;
+      else if (s === "shadow") actions = `<span class="small muted">Waiting for the policy owner. Shadow log running for 14 days.</span>`;
+      else if (s === "promoted") actions = `<span class="small muted">Live for all traffic. The previous version stays warm for one-click rollback.</span><button class="btn sm" data-a="rollback" data-p="${p.id}">Roll back</button>`;
+      else actions = `<span class="small muted">Rejected. The reason feeds back into how proposals are ranked.</span><button class="btn sm ghost" data-a="reopen" data-p="${p.id}">Reopen</button>`;
+      return `<article class="prop">
+        <button class="head" data-open="${p.id}" aria-expanded="${isOpen}"><span class="pid">${p.id}</span><span class="ttl"><b>${p.title}</b><span>${p.kind} · ${p.sys}</span></span>${pill}</button>
+        ${isOpen ? `<div class="body">
+          <p class="evid">${p.ev}</p>
+          <div class="table-wrap"><table><thead><tr><th>Measure</th><th>Now</th><th>Proposed</th><th>Change</th></tr></thead><tbody>${p.rows.map((r) => `<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num"><b>${r[2]}</b></td><td class="num">${r[3]}</td></tr>`).join("")}</tbody></table></div>
+          <div class="facts"><span class="pill ${p.risk === "low" ? "ok" : "warn"}">risk: ${p.risk}</span><span class="pill info">approver: ${p.appr}</span></div>
+          <div class="row">${actions}</div>
+        </div>` : ""}
+      </article>`;
+    }).join("");
+  }
+  $("#inbox").addEventListener("click", (e) => {
+    const h = e.target.closest("[data-open]"); if (h) { open = open === h.dataset.open ? null : h.dataset.open; inbox(); return; }
+    const b = e.target.closest("[data-a]"); if (!b) return;
+    const id = b.dataset.p, a = b.dataset.a;
+    const next = { canary: "canary", reject: "rejected", promote: "promoted", rollback: "new", shadow: "shadow", reopen: "new" }[a];
+    ST[id] = next; inbox();
+    toast({ canary: `${id}: canary started on 10% of traffic`, reject: `${id} rejected`, promote: `${id} promoted to 100%`, rollback: `${id} rolled back`, shadow: `${id} sent to the policy owner`, reopen: `${id} reopened` }[a]);
+  });
+  inbox();
+
+  // ---------- skill rules ----------
+  const R = { uses: 15, succ: 85, sys: 2, cv: 35, evalOn: true, evalMin: 8 };
+  const C = [
+    ["Diagnose a blocking chain", "dm_exec_requests → dm_os_waiting_tasks → dm_exec_sql_text", 23, 91, 2, 18, 9, "incident-investigator, capacity-watch"],
+    ["Refund eligibility check", "orders.lookup → refund_policy.table → decide", 389, 97, 1, 6, 10, "support-triage"],
+    ["Summarise a PR diff by risk", "github.diff → split_by_module → rank_by_churn", 140, 84, 1, 25, 8, "pr-review"],
+    ["Reproduce a failing test", "git.clone → run_single_test → bisect", 17, 88, 2, 52, 8, "pr-review, release-check"],
+    ["Draft an apology with credit", "kb.tone_guide → orders.lookup → draft", 61, 72, 1, 33, 7, "support-triage"],
+    ["Find a plan regression", "query_store.top_regressed → compare_plans", 9, 78, 1, 41, 6, "incident-investigator"]
+  ];
+  let selC = 0;
+  const rng = (k, l, min, max, step, unit) => `<label class="field"><span><span>${l}</span><output id="ro_${k}">${R[k]}${unit || ""}</output></span><input type="range" id="r_${k}" min="${min}" max="${max}" step="${step}" value="${R[k]}"></label>`;
+  $("#rules").innerHTML = rng("uses", "Minimum successful uses", 5, 100, 5) + rng("succ", "Minimum success rate", 60, 99, 1, "%") + rng("sys", "Seen in at least this many systems", 1, 4, 1) + rng("cv", "Maximum cost variation (CV)", 5, 80, 5, "%") +
+    `<label class="switch"><input type="checkbox" id="r_evalOn" checked> Must pass held-out scenarios</label>` + rng("evalMin", "Held-out minimum (of 10)", 5, 10, 1) +
+    `<p class="help small muted">A qualifying pattern becomes a draft skill. A person still reviews and names it before it is shared.</p>`;
+  $("#rules").addEventListener("input", (e) => { const k = e.target.id.slice(2); R[k] = e.target.type === "checkbox" ? e.target.checked : +e.target.value; const o = $("#ro_" + k); if (o) o.textContent = R[k] + (k === "succ" || k === "cv" ? "%" : ""); cands(); });
+  function check(c) {
+    const f = [];
+    if (c[2] < R.uses) f.push("uses"); if (c[3] < R.succ) f.push("succ"); if (c[4] < R.sys) f.push("sys"); if (c[5] > R.cv) f.push("cv"); if (R.evalOn && c[6] < R.evalMin) f.push("eval");
+    return f;
+  }
+  function cands() {
+    $("#cands").innerHTML = C.map((c, i) => {
+      const f = check(c), ok = !f.length, cls = (k) => (f.includes(k) ? ' class="c fail"' : ' class="c"');
+      return `<tr data-i="${i}" aria-selected="${i === selC}"><td><b>${c[0]}</b><br><span class="seq">${c[1]}</span></td><td${cls("uses")}>${c[2]}</td><td${cls("succ")}>${c[3]}%</td><td${cls("sys")}>${c[4]}</td><td${cls("cv")}>${c[5]}%</td><td${cls("eval")}>${c[6]}/10</td><td>${ok ? '<span class="pill ok">draft skill</span>' : '<span class="pill">not yet</span>'}</td></tr>`;
+    }).join("");
+    draft();
+  }
+  $("#cands").addEventListener("click", (e) => { const tr = e.target.closest("tr"); if (!tr) return; selC = +tr.dataset.i; cands(); });
+  function draft() {
+    const c = C[selC], f = check(c), slug = c[0].toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const names = { uses: "too few successful uses", succ: "success rate below threshold", sys: "seen in too few systems", cv: "cost varies too much between runs", eval: "fails held-out scenarios" };
+    $("#draftTitle").textContent = f.length ? `${c[0]} · not promoted: ${f.map((k) => names[k]).join(", ")}` : `${c[0]} · draft skill, waiting for review`;
+    $("#draft").innerHTML = `<span class="c">---</span>
+<span class="k">name</span>: ${slug}
+<span class="k">description</span>: <span class="s">"${c[0]}. Use when ${selC === 0 ? "queries are slow and many sessions wait on locks" : selC === 1 ? "a customer asks for a refund on an order" : selC === 2 ? "a pull request needs a reviewer's first read" : selC === 3 ? "a test fails in CI but the cause is unclear" : selC === 4 ? "a customer had a bad experience that merits credit" : "a query got slower after a deploy or index change"}."</span>
+<span class="k">version</span>: 0.1.0-draft
+<span class="k">owner</span>: ${selC === 0 || selC === 5 ? "team/sre" : selC === 2 || selC === 3 ? "team/platform-engineering" : "team/customer-support"}
+<span class="k">tools</span>: [${c[1].split(" → ").join(", ")}]
+<span class="k">grants</span>: read_only
+<span class="k">evals</span>: { held_out: ${c[6]}/10, set: <span class="s">"${slug}-scenarios"</span> }
+<span class="k">provenance</span>:
+  mined_from: ${c[2]} successful runs
+  systems: [${c[7]}]
+  success_rate: ${c[3]}%
+<span class="c">---</span>
+<span class="c">## Steps</span>
+${c[1].split(" → ").map((s, i) => `${i + 1}. Call ${s} and keep only what the next step needs.`).join("\n")}
+${c[1].split(" → ").length + 1}. Stop and report if a step returns nothing useful.
+<span class="c">## When not to use</span>
+- Outside the systems listed above, until reviewed for them.`;
+  }
+  cands();
+})();
+</script>
+</body>
+</html>

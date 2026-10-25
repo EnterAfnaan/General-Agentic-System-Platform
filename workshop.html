@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trellis · Workshop</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 10px; counter-reset: s; }
+  .steps .card { position: relative; }
+  .steps .card h4::before { counter-increment: s; content: counter(s); display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font: 600 12px var(--f-mono); margin-right: 8px; }
+  .session { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .session { grid-template-columns: minmax(0, 1fr); } }
+  .edit { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: pointer; }
+  .edit:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+  .edit input { width: 16px; height: 16px; accent-color: var(--accent); margin-top: 3px; }
+  .edit b { font-size: 14.5px; display: block; }
+  .edit span { font-size: 13px; color: var(--muted); }
+  .chk > button { grid-column: 2; justify-self: start; }
+  .chk { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 10px; align-items: start; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .chk:last-child { border-bottom: 0; }
+  .chk.fixed { opacity: .55; }
+  .chk.fixed p { text-decoration: line-through; }
+  .ladder { display: grid; gap: 6px; }
+  .rung { all: unset; box-sizing: border-box; cursor: pointer; display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  .rung:focus-visible { outline: 2px solid var(--accent); }
+  .rung[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); }
+  .rung .n { font: 600 13px var(--f-mono); width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-3); }
+  .rung[aria-pressed="true"] .n { background: var(--accent); color: var(--accent-ink); }
+  .rung b { display: block; font-size: 14.5px; }
+  .rung small { color: var(--muted); font-size: 12.5px; }
+  .real { display: flex; flex-wrap: wrap; gap: 6px; }
+  .files { font-family: var(--f-mono); font-size: 12.5px; display: grid; gap: 4px; }
+  .files div { display: flex; gap: 8px; }
+  .files .a { color: var(--ok); } .files .m { color: var(--warn); }
+</style>
+</head>
+<body>
+<div class="shell" data-page="workshop">
+  <nav id="rail" class="rail" aria-label="Prototype pages"></nav>
+  <main class="main">
+    <div class="page">
+      <header class="page-head">
+        <p class="eyebrow">Change safely · Workshop</p>
+        <h1>Copy a live system into a sandbox, change it, test it, ship a pull request</h1>
+        <p class="lede">The Workshop is where a team changes an agent system it already runs: new tools, skills, agents, an orchestrator, memory, a bigger golden set. Pre-flight comments on every edit. Tests climb from replays to real sandbox systems. The result goes back to the team's own repo as a pull request, in the team's own framework. Trellis does not host it unless the team wants that.</p>
+      </header>
+
+      <section class="section" aria-labelledby="flow-h">
+        <div class="section-head"><p class="eyebrow">The flow</p><h2 id="flow-h">Five steps from idea to pull request</h2></div>
+        <div class="steps">
+          <div class="card"><h4>Copy</h4><p>Copy the live system into a sandbox, like a Git branch. Sandbox credentials only. Nothing can write to production.</p></div>
+          <div class="card"><h4>Change</h4><p>Edit on the canvas or in code. Both change the same graph spec, plus skill files, prompts and datasets.</p></div>
+          <div class="card"><h4>Check</h4><p>Pre-flight runs on every edit: errors, warnings, cost and latency change.</p></div>
+          <div class="card"><h4>Test</h4><p>Climb the test ladder: replays, fakes, real sandbox systems, shadow traffic.</p></div>
+          <div class="card"><h4>Ship</h4><p>Open a pull request in the team's repo, in their framework's format. They deploy it as they do today.</p></div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="sess-h">
+        <div class="section-head">
+          <p class="eyebrow">A sandbox session</p>
+          <h2 id="sess-h">The support team changes its triage system</h2>
+          <p>Tick the changes they make. Pre-flight answers as each one lands. Some changes are fine, some need a fix, and one breaks a data rule.</p>
+        </div>
+        <div class="stats" id="sessStats"></div>
+        <div class="session">
+          <div class="stack" id="edits"></div>
+          <div class="panel"><div class="panel-head"><span class="eyebrow">Pre-flight, live</span><span class="small muted" id="chkNote"></span></div><div class="panel-body" id="checks" style="gap:0"></div></div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="lad-h">
+        <div class="section-head">
+          <p class="eyebrow">The test ladder</p>
+          <h2 id="lad-h">Recordings for every edit, real sandbox systems before merge</h2>
+          <p>Recordings and real sandboxes are not a choice. Each rung is more realistic and slower than the one below it, so cheap rungs run on every edit and real ones gate the pull request. Select a rung, then run it against the session above.</p>
+        </div>
+        <div class="split">
+          <div class="ladder" id="ladder"></div>
+          <div class="stack">
+            <div class="panel"><div class="panel-body" id="rungDetail"></div></div>
+            <div class="row"><button class="btn primary" id="runTests">Run this rung</button><span class="small muted" id="runNote"></span></div>
+            <div class="table-wrap" id="results" hidden></div>
+          </div>
+        </div>
+        <div class="callout warn"><b>What real sandbox systems cost</b><p>Someone has to provision them, keep the data fresh and mask personal data in copies. Real third-party sandboxes can be slow and flaky. Trellis provisions each one per Workshop session and tears it down afterwards, so these costs are paid once per test run, not on every edit.</p></div>
+      </section>
+
+      <section class="section" aria-labelledby="ship-h">
+        <div class="section-head">
+          <p class="eyebrow">Ship it back</p>
+          <h2 id="ship-h">Graph to code: reuse each framework's own format</h2>
+          <p>No existing tool turns one canvas into clean code for every framework. Several frameworks already load a declarative file, though, and visual tools already run their own JSON. So Trellis writes each framework's native format where one exists and generates code from templates only where it must. Pick the team's framework.</p>
+        </div>
+        <div class="row" id="targets"></div>
+        <div class="split">
+          <div class="panel"><div class="panel-body" id="targetDetail"></div></div>
+          <div class="panel"><div class="panel-head"><span class="eyebrow">Pull request · support-triage</span><span class="pill ok">pre-flight passed</span></div><div class="panel-body files" id="prFiles"></div></div>
+        </div>
+        <p class="small muted measure">Framework formats change quickly. Check each one against its current release before building an exporter. "Round trip" means Trellis can also read the team's edits back into the graph.</p>
+      </section>
+
+      <section class="section" aria-labelledby="tool-h">
+        <div class="section-head">
+          <p class="eyebrow">Creating tools</p>
+          <h2 id="tool-h">Integrate tool builders that already exist. Do not write our own.</h2>
+          <p>Trellis adds a contract, a risk tier, policy and tests to each tool. The tool itself comes from services that already do this well. All of them produce or speak MCP, so a new tool reaches every framework the same way.</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>The team has…</th><th>Existing ways to make it a tool</th><th>What Trellis adds</th></tr></thead>
+            <tbody>
+              <tr><td><b>A REST API with an OpenAPI spec</b></td><td>Generate an MCP server from the spec (e.g. FastMCP's OpenAPI support). Expose it through an API gateway that serves MCP (e.g. Azure API Management, AWS AgentCore Gateway).</td><td>Contract from the spec, risk tier per operation, argument limits, approval rules</td></tr>
+              <tr><td><b>A database</b></td><td>Existing database MCP servers or data API builders (e.g. Microsoft Data API builder), opened with read-only roles</td><td>Data-class tags, read-only by default, row security on behalf of the user</td></tr>
+              <tr><td><b>A business workflow</b></td><td>Workflow tools that already expose flows as tools (e.g. n8n, Azure Logic Apps connectors in Foundry)</td><td>One tool per flow, with its tier and owner</td></tr>
+              <tr><td><b>A snippet of code</b></td><td>Managed code sandboxes (e.g. Azure Container Apps dynamic sessions, E2B) run it with no network unless declared</td><td>Typed inputs and outputs, a test case per tool, cost per call</td></tr>
+              <tr><td><b>A SaaS product</b></td><td>The vendor's own MCP server, or a connector catalog</td><td>Shared connection per team, scopes, health checks</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="small muted measure">Product names are examples of each category as of 2026, not a commitment. Writing tools from scratch inside Trellis stays a later phase, if it ever earns its place.</p>
+      </section>
+
+      <section class="section" aria-labelledby="where-h">
+        <div class="section-head"><p class="eyebrow">Where it fits</p><h2 id="where-h">A feature of the same platform, built in steps</h2>
+        <p>The Workshop reuses everything else in Trellis: the spec, the catalog, pre-flight, evals, the gateways and checkpoints. As a separate product it would have to rebuild all of them.</p></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Phase</th><th>Workshop capability</th></tr></thead>
+          <tbody>
+            <tr><td><b>1</b> · Pre-flight</td><td>"This won't work" feedback on spec changes, in the CLI and in pull requests</td></tr>
+            <tr><td><b>2</b> · Gateways and traces</td><td>Replay tests from recorded runs and golden-set comparisons against the live version</td></tr>
+            <tr><td><b>3</b> · Canvas and runtime</td><td>Sandbox copies, canvas editing, real sandbox integrations, shadow runs, pull requests in the team's framework</td></tr>
+            <tr><td><b>4</b> · Learning</td><td>Proposals open as Workshop sessions with their tests already run</td></tr>
+            <tr><td>Later</td><td>Creating tools and agents inside the platform</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <nav class="next-prev" aria-label="Previous and next pages">
+        <a href="learn.html"><span>← Stage 5</span><b>Learn</b></a>
+        <a href="govern.html"><span>Across every stage</span><b>Govern →</b></a>
+      </nav>
+    </div>
+  </main>
+</div>
+<script src="shared.js"></script>
+<script>
+(function () {
+  const EDITS = [
+    { id: "tool", t: "Add tool: Lookup shipment", d: "Generated as an MCP tool from the carrier's OpenAPI spec", cost: 0.0005, lat: 400,
+      checks: [["ok", "Contract read from the spec: read-only, emits PII, owner Customer Support"], ["info", "No timeout declared. Using the connector default of 10 s.", null]] },
+    { id: "skill", t: "Add skill file: Refund policy v3", d: "Markdown skill that “Check refund eligibility” can load", cost: 0.0003, lat: 0,
+      checks: [["ok", "Skill indexed. Two agents may load it."], ["warn", "No golden-set case covers the new policy, so its effect cannot be measured", "Add 5 written cases for policy v3"]] },
+    { id: "agent", t: "Add agent: Escalation writer", d: "Large external model, reads order history, drafts a note to the account manager", cost: 0.009, lat: 3100,
+      checks: [["error", "D-01: PII from “Order history” reaches an external model in “Escalation writer”", "Insert PII redaction before it"], ["warn", "S-01: the note is customer-visible (tier 2) with no approval or output check", "Add a groundedness check"]] },
+    { id: "orch", t: "Replace the router with an orchestrator", d: "An LLM decides which agents to call and in what order", cost: 0.004, lat: 2100,
+      checks: [["warn", "Delegation depth and budget are not set, so the orchestrator could call agents in a loop", "Cap depth at 2 and budget at $0.20"], ["info", "p95 latency rises 2.1 s. The old router was rule-based and free.", null]] },
+    { id: "mem", t: "Add memory: customer history (episodic)", d: "Remembers past tickets per customer", cost: 0.0006, lat: 60,
+      checks: [["warn", "D-02: PII stored in memory with no retention rule", "Set 30-day retention, PII as tokens"]] },
+    { id: "gold", t: "Grow golden set: +40 cases", d: "From last month's approver edits", cost: 0, lat: 0,
+      checks: [["ok", "Eval set grows from 412 to 452 cases, including 12 billing disputes"]] }
+  ];
+  const on = new Set(["tool", "agent", "orch"]), fixed = new Set();
+  $("#edits").innerHTML = EDITS.map((e) => `<label class="edit"><input type="checkbox" data-e="${e.id}"${on.has(e.id) ? " checked" : ""}><span><b>${e.t}</b><span>${e.d}</span></span></label>`).join("");
+  $("#edits").addEventListener("change", (ev) => { const id = ev.target.dataset.e; ev.target.checked ? on.add(id) : on.delete(id); render(); });
+  $("#checks").addEventListener("click", (ev) => { const b = ev.target.closest("[data-fix]"); if (!b) return; fixed.add(b.dataset.fix); toast("Fix applied in the sandbox copy"); render(); });
+  function render() {
+    const list = EDITS.filter((e) => on.has(e.id));
+    const rows = list.flatMap((e) => e.checks.map((c, i) => ({ k: e.id + i, sev: c[0], t: c[1], fix: c[2] })));
+    const open = rows.filter((r) => !fixed.has(r.k));
+    const err = open.filter((r) => r.sev === "error").length, warn = open.filter((r) => r.sev === "warn").length;
+    const cost = list.reduce((s, e) => s + e.cost, 0) + (fixed.has("agent1") ? 0.004 : 0), lat = list.reduce((s, e) => s + e.lat, 0);
+    $("#sessStats").innerHTML = `
+      <div class="stat"><span class="label">Changes in this session</span><span class="value num">${list.length}</span><span class="note">copy of support-triage@v14</span></div>
+      <div class="stat"><span class="label">Open findings</span><span class="value num" style="color:${err ? "var(--err)" : warn ? "var(--warn)" : "var(--ok)"}">${err + warn}</span><span class="note">${err} error${err === 1 ? "" : "s"} · ${warn} warning${warn === 1 ? "" : "s"}</span></div>
+      <div class="stat"><span class="label">Cost change per run</span><span class="value num">+$${cost.toFixed(4)}</span><span class="note">expected, before tests</span></div>
+      <div class="stat"><span class="label">Latency change</span><span class="value num">+${(lat / 1000).toFixed(1)} s</span><span class="note">worst path</span></div>
+      <div class="stat"><span class="label">Can open a PR?</span><span class="value" style="font-size:20px;color:${err ? "var(--err)" : "var(--ok)"}">${err ? "Not yet" : "Yes"}</span><span class="note">${err ? "errors block the PR" : "after the test ladder"}</span></div>`;
+    $("#chkNote").textContent = rows.length ? `${rows.length - open.length} of ${rows.length} resolved` : "";
+    $("#checks").innerHTML = rows.length ? rows.map((r) => `<div class="chk${fixed.has(r.k) ? " fixed" : ""}"><span class="pill ${r.sev === "error" ? "err" : r.sev === "warn" ? "warn" : r.sev === "ok" ? "ok" : "info"}">${r.sev === "info" ? "note" : r.sev}</span><p>${esc(r.t)}</p>${r.fix && !fixed.has(r.k) ? `<button class="btn sm" data-fix="${r.k}">${esc(r.fix)}</button>` : "<span></span>"}</div>`).join("") : '<p class="muted">Tick a change to see what pre-flight says about it.</p>';
+    window.__ws = { err, list };
+  }
+  render();
+
+  const RUNGS = [
+    ["Recorded replay", "every edit · seconds · ~$0.01", "Rerun past runs with recorded tool outputs. Model calls are real, the rest of the world is played back.", ["models: real"], "Logic changes, prompt edits, model swaps. Cannot test a brand-new tool, because nothing was recorded for it."],
+    ["Contract fakes", "every edit · seconds", "Tools answer from fakes generated from their contracts and schemas, with edge cases such as timeouts, empty results and 429s.", ["models: real", "tools: fake"], "New tools and error handling. Fakes are only as good as the schema."],
+    ["Real sandbox systems", "before merge · minutes · ~$2", "Trellis provisions real systems in sandbox mode for this session: the payments provider's test mode, a Zendesk sandbox, a GitHub test repo, a database copy or branch with masked data. Torn down afterwards.", ["models: real", "tools: real (sandbox)", "data: masked copy"], "Integration bugs, auth scopes, real latency, real error shapes. This is the merge gate."],
+    ["Shadow traffic", "before rollout · hours", "The candidate sees a copy of live traffic and decides, but its writes are dropped. Its decisions are compared with what the live version did.", ["models: real", "inputs: live", "writes: dropped"], "Behaviour on real-world inputs nobody thought to write down."],
+    ["Canary", "rollout · days", "A small share of real traffic, with real writes, under all production policy and a one-click rollback.", ["everything real"], "The last check. Only after the rungs below pass."]
+  ];
+  const RES = [
+    [["Golden set (452)", "91.2%", "92.4%"], ["Replayed runs (1,000)", "—", "0 crashes, 3 changed answers flagged for review"], ["Cost per run", "$0.020", "$0.034"]],
+    [["Tool error cases (24)", "—", "22 handled, 2 retried forever → fix timeout"], ["Orchestrator depth", "—", "max 2 ✓"], ["Golden set", "91.2%", "92.1%"]],
+    [["End-to-end runs (60)", "—", "58 passed"], ["Shipment API auth", "—", "scope missing on 2 calls → token fix"], ["p95 latency", "16.6 s", "21.9 s"]],
+    [["Live tickets mirrored (2,140)", "—", "same route 94%, better 3%, worse 1.2%"], ["Writes dropped", "—", "214"], ["Cost per run", "$0.020", "$0.033"]],
+    [["Traffic share", "—", "10% for 48 h"], ["Reopen rate", "6.1%", "5.4%"], ["Rollback ready", "—", "v14 kept warm"]]
+  ];
+  let rung = 2;
+  function ladder() {
+    $("#ladder").innerHTML = RUNGS.map((r, i) => `<button class="rung" data-r="${i}" aria-pressed="${i === rung}"><span class="n">${i + 1}</span><span><b>${r[0]}</b><small>${r[1]}</small></span><span class="real">${r[3].map((x) => `<span class="pill">${x}</span>`).join("")}</span></button>`).join("");
+    const r = RUNGS[rung];
+    $("#rungDetail").innerHTML = `<h3>${rung + 1}. ${r[0]}</h3><p>${r[2]}</p><p class="small"><b>Best for:</b> ${r[4]}</p>`;
+    $("#results").hidden = true; $("#runNote").textContent = "";
+  }
+  $("#ladder").addEventListener("click", (e) => { const b = e.target.closest(".rung"); if (b) { rung = +b.dataset.r; ladder(); } });
+  $("#runTests").onclick = () => {
+    if (window.__ws.err && rung >= 2) { $("#runNote").textContent = "Fix the open pre-flight errors first. Real systems and live traffic stay locked until then."; $("#results").hidden = true; return; }
+    $("#runNote").textContent = `Ran against ${window.__ws.list.length} changes in the sandbox copy. Sample results.`;
+    const t = $("#results"); t.hidden = false;
+    t.innerHTML = `<table><thead><tr><th>Measure</th><th>Live v14</th><th>Sandbox copy</th></tr></thead><tbody>${RES[rung].map((x) => `<tr><td>${x[0]}</td><td class="num">${x[1]}</td><td class="num"><b>${x[2]}</b></td></tr>`).join("")}</tbody></table>`;
+  };
+  ladder();
+
+  const T = {
+    langgraph: ["LangGraph", "Generated Python from templates", "LangGraph graphs are defined in code, and LangGraph Studio draws code as a graph, not the other way round. So Trellis generates a StateGraph module from templates and keeps a marker block it owns.", "partial: Trellis reads the graph back by importing the module", ["a|triage/graph.py", "a|triage/nodes/escalation_writer.py", "m|triage/tools.py", "a|skills/refund-policy-v3.md"]],
+    maf: ["Agent Framework", "Declarative workflow file + code for custom nodes", "Microsoft Agent Framework can load agents and workflows from declarative YAML. Trellis writes that file and only generates code for nodes it cannot express.", "yes, for declarative parts", ["m|workflows/support-triage.yaml", "a|agents/escalation-writer.yaml", "a|skills/refund-policy-v3.md", "m|evals/golden.jsonl"]],
+    crewai: ["CrewAI", "agents.yaml + tasks.yaml + crew module", "CrewAI already keeps agents and tasks in YAML config. Trellis edits those files and a thin crew module for routing.", "yes, for agents and tasks", ["m|config/agents.yaml", "m|config/tasks.yaml", "m|crew.py", "a|skills/refund-policy-v3.md"]],
+    langflow: ["Langflow", "Langflow flow JSON, run by Langflow", "For teams who want low-code, Trellis converts the graph to a Langflow flow and lets Langflow run it. The canvas they edit later can be Langflow's own.", "yes, through Langflow's JSON", ["m|flows/support-triage.json", "a|components/shipment_lookup.py"]],
+    sdk: ["Trellis SDK", "The spec file itself, run by a small library", "For frameworks with no format, the team embeds a Trellis runner that executes the spec inside their app. No generated code to maintain.", "yes, it is the spec", ["m|support-triage.trellis.yaml", "a|skills/refund-policy-v3.md", "m|evals/golden.jsonl"]]
+  };
+  let tg = "maf";
+  $("#targets").innerHTML = Object.entries(T).map(([k, v]) => `<button class="chip" data-t="${k}" aria-pressed="${k === tg}">${v[0]}</button>`).join("");
+  $("#targets").addEventListener("click", (e) => { const b = e.target.closest("[data-t]"); if (!b) return; tg = b.dataset.t; $$("#targets .chip").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); target(); });
+  function target() {
+    const v = T[tg];
+    $("#targetDetail").innerHTML = `<span class="eyebrow">Output</span><h3>${v[1]}</h3><p>${v[2]}</p><p class="small"><b>Round trip:</b> ${v[3]}</p>`;
+    $("#prFiles").innerHTML = v[4].map((f) => { const [s, p] = f.split("|"); return `<div><span class="${s}">${s === "a" ? "+ added" : "~ changed"}</span><span>${p}</span></div>`; }).join("") + `<div class="small muted" style="margin-top:8px;font-family:var(--f-body)">Includes the pre-flight report and test results as a PR comment.</div>`;
+  }
+  target();
+})();
+</script>
+</body>
+</html>

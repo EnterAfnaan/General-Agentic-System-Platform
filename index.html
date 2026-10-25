@@ -1,0 +1,330 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Trellis Agent Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .hero { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding-bottom: 8px; }
+  .hero h1 { max-width: 19ch; }
+  .loop-stage { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 22px; align-items: stretch; }
+  @media (max-width: 900px) { .loop-stage { grid-template-columns: minmax(0, 1fr); } }
+  .ring { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 8px; min-width: 0;
+    background-image: radial-gradient(var(--grid) 1px, transparent 1px); background-size: 18px 18px; }
+  .ring svg { display: block; width: 100%; height: auto; }
+  .ring .st { cursor: pointer; }
+  .ring .st circle.body { fill: var(--surface); stroke: var(--line-strong); stroke-width: 2; transition: stroke .15s, fill .15s; }
+  .ring .st:hover circle.body { stroke: var(--accent); }
+  .ring .st[aria-pressed="true"] circle.body { fill: var(--accent); stroke: var(--accent); }
+  .ring .st[aria-pressed="true"] text { fill: var(--accent-ink); }
+  .ring .st:focus { outline: none; }
+  .ring .st:focus-visible circle.body { stroke: var(--accent); stroke-width: 4; }
+  .ring .arc { fill: none; stroke: var(--line-strong); stroke-width: 2; }
+  .ring .arc.back { stroke: var(--accent); stroke-dasharray: 6 5; }
+  .ring .spoke { stroke: var(--k-govern); stroke-width: 1.2; stroke-dasharray: 2 5; opacity: .55; }
+  .ring .gov circle { fill: var(--k-govern); }
+  .ring .gov text { fill: var(--bg); }
+  .stage-panel { display: grid; gap: 14px; align-content: start; }
+  .stage-panel .ex { background: var(--surface-2); border: 1px dashed var(--line-strong); border-radius: var(--r-sm); padding: 12px 14px; font-size: 14px; display: grid; gap: 4px; }
+  .problem { display: grid; gap: 8px; }
+  .problem .sym { font-family: var(--f-mono); font-size: 12px; color: var(--err); background: var(--err-soft); padding: 6px 9px; border-radius: 4px; }
+  .matrix td.c span { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; font-size: 13px; font-weight: 700; }
+  .y { background: var(--ok-soft); color: var(--ok); }
+  .p { background: var(--warn-soft); color: var(--warn); }
+  .n { background: var(--surface-3); color: var(--faint); }
+  .matrix tr.us td { background: var(--accent-soft); }
+  .matrix tr.us td:first-child { font-weight: 700; }
+  .persona { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: start; }
+  .persona .av { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-family: var(--f-display); font-weight: 700; background: var(--surface-3); color: var(--ink); }
+  .sys-card .mini { height: 96px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--line); }
+  .sys-card svg { width: 100%; height: 100%; display: block; }
+  .bet { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px; counter-reset: why; }
+  .bet .card h4::before { counter-increment: why; content: counter(why) ". "; color: var(--accent); }
+</style>
+
+<div class="shell" data-page="overview">
+  <nav id="rail" class="rail" aria-label="Prototype pages"></nav>
+  <main class="main">
+    <div class="page">
+
+      <header class="hero">
+        <p class="eyebrow">Concept prototype · Agentic systems across teams · October 2026</p>
+        <h1>Know what an agent system will do, cost and be allowed to touch before it runs.</h1>
+        <p class="lede">Trellis is a shared workbench for agentic systems. Teams connect their data and tools once, compose agents and coding harnesses on a canvas, get a pre-flight check before anything runs, and improve the system from its own runs. It sits above the frameworks teams already use. It does not replace them.</p>
+        <div class="row">
+          <a class="btn primary" href="canvas.html#triage">Open the canvas</a>
+          <a class="btn" href="check.html">See the pre-flight check</a>
+          <a class="btn" href="workshop.html">Try changes in the Workshop</a>
+          <a class="btn ghost" href="blueprint.html">How we would build it</a>
+        </div>
+      </header>
+
+      <section class="section" aria-labelledby="loop-h">
+        <div class="section-head">
+          <p class="eyebrow">The loop</p>
+          <h2 id="loop-h">Four stages that repeat, one entry point, one frame around all of it</h2>
+          <p>Connect is done once per integration. Compose, Check, Run and Learn repeat for the life of a system. Governance is not a stage: policy is attached to the graph and enforced at every step. Select a stage to see what it does.</p>
+        </div>
+        <div class="loop-stage">
+          <div class="ring" id="ring"></div>
+          <div class="panel stage-panel" id="stagePanel" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="pain-h">
+        <div class="section-head">
+          <p class="eyebrow">Why bother</p>
+          <h2 id="pain-h">What teams building agents live with today</h2>
+          <p>Each team picks a framework, wires its own connectors, writes its own approval step and finds out what the system costs from the monthly bill. None of these problems is about model quality. They are all about the missing layer around the agents.</p>
+        </div>
+        <div class="grid g2">
+          <article class="card problem">
+            <h3>Every team rebuilds the same plumbing</h3>
+            <p>Database access, retries, human approval, secrets and tracing get rebuilt in LangGraph by one team, Microsoft Agent Framework by another and a shell script by a third.</p>
+            <span class="sym">Symptom: 4 approval implementations, none audited the same way</span>
+          </article>
+          <article class="card problem">
+            <h3>Cost and latency show up in production</h3>
+            <p>A loop that usually runs 3 times runs 14 times on a hard case. A context window grows by the full tool output on every turn. Nobody saw it on a whiteboard.</p>
+            <span class="sym">Symptom: a $0.04 run becomes $1.90 on the long tail</span>
+          </article>
+          <article class="card problem">
+            <h3>Governance is per team and uneven</h3>
+            <p>One team redacts personal data before calling an external model. Another sends raw tickets. A coding harness runs with network access because no one decided otherwise.</p>
+            <span class="sym">Symptom: no single answer to "what can our agents write to?"</span>
+          </article>
+          <article class="card problem">
+            <h3>Nothing learns from its own runs</h3>
+            <p>Thumbs-down feedback is stored and never read. A fix one team finds for a prompt or a tool sequence never reaches the team with the same problem.</p>
+            <span class="sym">Symptom: runs are logged, but never turned into evals</span>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="sys-h">
+        <div class="section-head">
+          <p class="eyebrow">Three systems, three shapes</p>
+          <h2 id="sys-h">The examples used throughout these pages</h2>
+          <p>Each comes from a different team and has a different structure. If one workbench handles all three well, the idea holds up across teams.</p>
+        </div>
+        <div class="grid g3">
+          <a class="card link sys-card" href="canvas.html#triage">
+            <div class="mini"><svg viewBox="0 0 300 96" aria-hidden="true">
+              <g fill="none" stroke="var(--line-strong)" stroke-width="1.5"><path d="M44 48h30M118 48h24M186 48l26-22M186 48l26 22"/></g>
+              <rect x="14" y="36" width="30" height="24" rx="5" fill="var(--k-trigger)"/><rect x="74" y="36" width="44" height="24" rx="5" fill="var(--k-govern)"/>
+              <rect x="142" y="36" width="44" height="24" rx="5" fill="var(--k-agent)"/><rect x="212" y="14" width="44" height="24" rx="5" fill="var(--k-data)"/><rect x="212" y="58" width="44" height="24" rx="5" fill="var(--k-tool)"/>
+            </svg></div>
+            <span class="kind k-agent">Customer Support</span>
+            <h3>Support triage</h3>
+            <p>Router workflow. Redact, classify, retrieve from the knowledge base, draft a reply. Refunds over a limit need a person to approve.</p>
+          </a>
+          <a class="card link sys-card" href="canvas.html#prreview">
+            <div class="mini"><svg viewBox="0 0 300 96" aria-hidden="true">
+              <g fill="none" stroke="var(--line-strong)" stroke-width="1.5"><path d="M44 48h20M108 48l26-30M108 48h26M108 48l26 30M178 18l34 30M178 48h34M178 78l34-30"/></g>
+              <rect x="14" y="36" width="30" height="24" rx="5" fill="var(--k-trigger)"/><rect x="64" y="36" width="44" height="24" rx="5" fill="var(--k-tool)"/>
+              <rect x="134" y="6" width="44" height="24" rx="5" fill="var(--k-harness)"/><rect x="134" y="36" width="44" height="24" rx="5" fill="var(--k-harness)"/><rect x="134" y="66" width="44" height="24" rx="5" fill="var(--k-agent)"/>
+              <rect x="212" y="36" width="44" height="24" rx="5" fill="var(--k-agent)"/>
+            </svg></div>
+            <span class="kind k-harness">Platform Engineering</span>
+            <h3>PR review</h3>
+            <p>Parallel goals. Claude Code checks correctness, Codex writes missing tests, a security agent scans the diff. One agent merges findings into a single comment.</p>
+          </a>
+          <a class="card link sys-card" href="canvas.html#incident">
+            <div class="mini"><svg viewBox="0 0 300 96" aria-hidden="true">
+              <g fill="none" stroke="var(--line-strong)" stroke-width="1.5"><path d="M44 48h20M108 48h20M172 48h20"/><path d="M214 36c0-26-64-26-64 0" stroke="var(--accent)" stroke-dasharray="4 3"/><path d="M236 48h24"/></g>
+              <rect x="14" y="36" width="30" height="24" rx="5" fill="var(--k-trigger)"/><rect x="64" y="36" width="44" height="24" rx="5" fill="var(--k-data)"/>
+              <rect x="128" y="36" width="44" height="24" rx="5" fill="var(--k-agent)"/><rect x="192" y="36" width="44" height="24" rx="5" fill="var(--k-control)"/><rect x="260" y="36" width="30" height="24" rx="5" fill="var(--k-tool)"/>
+            </svg></div>
+            <span class="kind k-control">SRE / Database reliability</span>
+            <h3>Incident investigator</h3>
+            <p>Goal-based loop. Recall similar past incidents, propose hypotheses, test them one at a time with read-only queries, stop when one is confirmed or the budget runs out.</p>
+          </a>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="as-h">
+        <div class="section-head">
+          <p class="eyebrow">Assumptions</p>
+          <h2 id="as-h">What these pages assume, and what changes if an assumption is wrong</h2>
+          <p>The idea was not fully specified, so these are the defaults the prototype is built on. Each one can be challenged on its own.</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Question</th><th>Assumption</th><th>Why</th><th>If it's wrong</th></tr></thead>
+            <tbody>
+              <tr><td><b>Who builds systems?</b></td><td>AI engineers and product developers. Team leads, approvers and platform admins use read and approve views.</td><td>They own agent systems today. A no-code audience needs a far more opinionated product.</td><td>Templates and guided setup become the main surface. Code nodes move behind an "advanced" switch.</td></tr>
+              <tr><td><b>What is it for?</b></td><td>An internal platform pitch: a vision first, then a narrow pilot with two or three teams.</td><td>A shared layer earns its keep inside one company before it is worth selling.</td><td>If it is a product to sell, positioning against cloud vendors becomes the first problem to solve.</td></tr>
+              <tr><td><b>The one must-have</b></td><td>The pre-flight check: lint the graph, forecast cost and latency, and suggest fixes.</td><td>Few tools do it, it is cheap to build on a graph spec, and it is useful even if teams never move their runtime.</td><td>If governance is the must-have, start with the model and tool gateways instead (Blueprint, phase 2).</td></tr>
+              <tr><td><b>Replace team frameworks?</b></td><td>No. Import and wrap them. LangGraph, Agent Framework, CrewAI, Claude Code and Codex all become nodes.</td><td>Asking teams to migrate kills adoption. Wrapping lets them keep their code and gain the shared layer.</td><td>A single native runtime is simpler to build but needs a mandate behind it.</td></tr>
+              <tr><td><b>What does "learning" mean?</b></td><td>The system improves its own graph, prompts, models and skills from run evidence, with a person approving changes.</td><td>Unsupervised self-modification in production is not acceptable for most teams.</td><td>Fine-tuning becomes a later, separate track fed by the same datasets.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="who-h">
+        <div class="section-head">
+          <p class="eyebrow">People</p>
+          <h2 id="who-h">Who uses Trellis, and for what</h2>
+        </div>
+        <div class="grid">
+          <div class="card persona"><span class="av">B</span><div class="stack" style="gap:4px"><h4>Builder</h4><p>AI engineer or developer. Composes the graph, writes code nodes, reads pre-flight findings, runs evals.</p></div></div>
+          <div class="card persona"><span class="av">L</span><div class="stack" style="gap:4px"><h4>Team lead</h4><p>Owns the budget and the outcome. Reads the forecast, the rating and the monthly spend per system.</p></div></div>
+          <div class="card persona"><span class="av">A</span><div class="stack" style="gap:4px"><h4>Approver</h4><p>Support supervisor, senior engineer or DBA. Gets an approval request in Teams or Slack with the evidence and the exact action.</p></div></div>
+          <div class="card persona"><span class="av">P</span><div class="stack" style="gap:4px"><h4>Platform and security admin</h4><p>Writes org-level policy once: data classes, model boundaries, write tiers, budgets. Reviews exceptions.</p></div></div>
+          <div class="card persona"><span class="av">C</span><div class="stack" style="gap:4px"><h4>Consumer</h4><p>A person or another agent calling the system over chat, an API, MCP or A2A. Never sees the graph.</p></div></div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="fit-h">
+        <div class="section-head">
+          <p class="eyebrow">Where it fits</p>
+          <h2 id="fit-h">Most of the parts already exist. The connected loop does not.</h2>
+          <p>Visual builders, cloud agent platforms, graph frameworks and observability tools each cover part of this. The gap is design-time checking, governance that spans frameworks and clouds, and learning that crosses team boundaries.</p>
+        </div>
+        <div class="table-wrap">
+          <table class="matrix">
+            <thead><tr><th>Category</th><th class="c">Visual canvas</th><th class="c">Any framework or harness</th><th class="c">Pre-flight lint</th><th class="c">Cost forecast</th><th class="c">Cross-team governance</th><th class="c">Checkpoint & resume</th><th class="c">Cross-team learning</th></tr></thead>
+            <tbody>
+              <tr><td>Visual builders<br><span class="small muted">Langflow, Flowise, Dify, n8n</span></td><td class="c"><span class="y">✓</span></td><td class="c"><span class="p">~</span></td><td class="c"><span class="n">–</span></td><td class="c"><span class="n">–</span></td><td class="c"><span class="n">–</span></td><td class="c"><span class="p">~</span></td><td class="c"><span class="n">–</span></td></tr>
+              <tr><td>Cloud agent platforms<br><span class="small muted">Azure AI Foundry, Bedrock AgentCore, Vertex AI Agent Builder</span></td><td class="c"><span class="p">~</span></td><td class="c"><span class="p">~</span></td><td class="c"><span class="n">–</span></td><td class="c"><span class="n">–</span></td><td class="c"><span class="p">~</span></td><td class="c"><span class="y">✓</span></td><td class="c"><span class="n">–</span></td></tr>
+              <tr><td>Graph frameworks<br><span class="small muted">LangGraph, Agent Framework workflows</span></td><td class="c"><span class="p">~</span></td><td class="c"><span class="n">–</span></td><td class="c"><span class="n">–</span></td><td class="c"><span class="n">–</span></td><td class="c"><span class="n">–</span></td><td class="c"><span class="y">✓</span></td><td class="c"><span class="n">–</span></td></tr>
+              <tr><td>Observability and evals<br><span class="small muted">Langfuse, Arize Phoenix, LangSmith</span></td><td class="c"><span class="n">–</span></td><td class="c"><span class="y">✓</span></td><td class="c"><span class="n">–</span></td><td class="c"><span class="p">~</span></td><td class="c"><span class="n">–</span></td><td class="c"><span class="n">–</span></td><td class="c"><span class="p">~</span></td></tr>
+              <tr class="us"><td>Trellis</td><td class="c"><span class="y">✓</span></td><td class="c"><span class="y">✓</span></td><td class="c"><span class="y">✓</span></td><td class="c"><span class="y">✓</span></td><td class="c"><span class="y">✓</span></td><td class="c"><span class="y">✓</span></td><td class="c"><span class="y">✓</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="small muted measure">✓ covered · ~ partly, or only inside one vendor's cloud · – not a focus. This is a judgement from public product material as of mid-2026, not a feature audit. Recheck it before presenting it outside the team. "Cost forecast" means a prediction before running. Most observability tools report actual cost after the fact.</p>
+      </section>
+
+      <section class="section" aria-labelledby="bet-h">
+        <div class="section-head">
+          <p class="eyebrow">The bet</p>
+          <h2 id="bet-h">Start with the pre-flight check, not the canvas</h2>
+          <p>A canvas alone is a commodity. A check that reads any team's agent graph and says "this loop has no exit, this refund has no approval, this step will cost $1.90 on bad days" is new, and it works on systems teams already have.</p>
+        </div>
+        <div class="bet">
+          <div class="card"><h4>It needs no migration</h4><p>Import an existing LangGraph or Agent Framework graph into the spec and run the check. Teams get value on day one without moving their runtime.</p></div>
+          <div class="card"><h4>It makes the rest possible</h4><p>The typed graph spec that the check needs is the same thing the canvas edits, the gateways enforce and the learning loop improves.</p></div>
+          <div class="card"><h4>It is easy to measure</h4><p>Count findings caught before production and compare forecasts with actual cost. Both are numbers a lead or a manager will read.</p></div>
+        </div>
+      </section>
+
+      <nav class="next-prev" aria-label="Next page">
+        <span></span>
+        <a href="connect.html"><span>Next · Stage 1</span><b>Connect: every system becomes a typed node →</b></a>
+      </nav>
+    </div>
+  </main>
+</div>
+
+<script src="shared.js"></script>
+<script>
+(function () {
+  const STAGES = {
+    connect: {
+      n: "1", name: "Connect", href: "connect.html", x: 96, y: 92,
+      lead: "Plug in databases, vector stores, event streams, MCP servers, models and coding harnesses once per team. Each becomes a typed node with a contract.",
+      points: ["Capabilities: read, write, stream, execute", "Data classes it can emit: public to secret", "Cost model, latency profile, auth mode, rate limits"],
+      ex: "Zendesk, the help-center index in Azure AI Search, the refunds API and the customer database are connected by the support team. Each declares that it can emit PII."
+    },
+    compose: {
+      n: "2", name: "Compose", href: "canvas.html", x: 360, y: 92,
+      lead: "Draw the system on a canvas, or write it as code. Both edit the same versioned graph spec. Agents, harnesses, code, routers, loops, approvals and memory are all nodes.",
+      points: ["Custom agents, Claude Code and Codex nodes side by side", "Loops with explicit exit conditions", "Graph-as-code: reviewed in pull requests"],
+      ex: "Triage is a router: redact, classify, then either draft a reply from the knowledge base or propose a refund."
+    },
+    check: {
+      n: "3", name: "Check", href: "check.html", x: 510, y: 242,
+      lead: "Before anything runs, Trellis lints the graph, forecasts cost and latency, rates it, and proposes fixes you can apply in one click.",
+      points: ["Lint: no exit, unapproved writes, PII leaving its boundary", "Forecast: cost and latency at p50 and p95", "Fixes: insert approval, add exit, downsize a model"],
+      ex: "Pre-flight flags that the refund call has no approval step and that intent classification runs on a large model for no gain."
+    },
+    run: {
+      n: "4", name: "Run & observe", href: "run.html", x: 360, y: 392,
+      lead: "Runs are durable. Every node boundary is a checkpoint, so a run can wait hours for approval, survive a restart, be replayed or be forked.",
+      points: ["Close conditions: success, budget, iterations, no progress", "Several goals at once with shared budgets", "Every trace span maps back to a canvas node"],
+      ex: "A refund waits for a supervisor in Teams for 40 minutes, then resumes from its checkpoint without re-running classification."
+    },
+    learn: {
+      n: "5", name: "Learn", href: "learn.html", x: 210, y: 242,
+      lead: "Runs become evidence. Trellis turns feedback, approver edits and outcomes into eval sets, then proposes changes with before-and-after results.",
+      points: ["Proposals: model swaps, new routes, prompt edits", "Skills promoted from repeated successful patterns", "Nothing reaches production without an eval and a person"],
+      ex: "Supervisors approved 412 of 415 small refunds. Trellis proposes auto-approving refunds under $20 and routes the proposal to the policy owner."
+    },
+    govern: {
+      n: "", name: "Govern", href: "govern.html", x: 360, y: 242,
+      lead: "The frame around every stage. Policy is attached to the graph, checked in pre-flight and enforced at runtime at the model, tool and data boundaries.",
+      points: ["Org → team → system → node policy layers", "Guardrails on input, output and actions", "Approvals, agent identity and a full audit trail"],
+      ex: "Org policy says PII may only reach models hosted in our tenant. The triage graph inherits that without anyone writing it again."
+    }
+  };
+  const ringOrder = ["compose", "check", "run", "learn"];
+  const C = { x: 360, y: 242 }, R = 150, NR = 44;
+  const ang = { compose: -90, check: 0, run: 90, learn: 180 };
+  const pt = (deg, r = R) => [C.x + r * Math.cos(deg * Math.PI / 180), C.y + r * Math.sin(deg * Math.PI / 180)];
+
+  let arcs = "";
+  ringOrder.forEach((k, i) => {
+    const next = ringOrder[(i + 1) % 4];
+    const a0 = ang[k] + 19, a1 = (ang[next] < ang[k] ? ang[next] + 360 : ang[next]) - 21;
+    const [x0, y0] = pt(a0), [x1, y1] = pt(a1);
+    arcs += `<path class="arc${k === "learn" ? " back" : ""}" d="M${x0.toFixed(1)} ${y0.toFixed(1)} A${R} ${R} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}" marker-end="url(#${k === "learn" ? "ah2" : "ah"})"/>`;
+  });
+  const spokes = ringOrder.map((k) => { const [x, y] = pt(ang[k], R - NR - 4); const [x2, y2] = pt(ang[k], 62); return `<line class="spoke" x1="${x2.toFixed(1)}" y1="${y2.toFixed(1)}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`; }).join("");
+
+  const node = (k) => {
+    const s = STAGES[k];
+    const words = s.name.split(" ");
+    const lines = words.length > 1 ? [words.slice(0, 2).join(" "), words.slice(2).join(" ")].filter(Boolean) : [s.name];
+    const ty = lines.length > 1 ? 4 : 10;
+    return `<g class="st" data-k="${k}" tabindex="0" role="button" aria-pressed="false" aria-label="${s.name}">
+      <circle class="body" cx="${s.x}" cy="${s.y}" r="${NR}"/>
+      <text x="${s.x}" y="${s.y - 12}" text-anchor="middle" class="svg-mono" style="font-size:11px">${s.n}</text>
+      ${lines.map((l, i) => `<text x="${s.x}" y="${s.y + ty + i * 15}" text-anchor="middle" class="svg-text" style="font-size:13.5px;font-weight:600">${l}</text>`).join("")}
+    </g>`;
+  };
+
+  document.getElementById("ring").innerHTML = `
+  <svg viewBox="0 0 640 484" role="group" aria-label="The Trellis loop">
+    <defs>
+      <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="var(--line-strong)"/></marker>
+      <marker id="ah2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="var(--accent)"/></marker>
+    </defs>
+    ${spokes}
+    ${arcs}
+    <path class="arc" d="M140 92 H310" marker-end="url(#ah)"/>
+    <text x="225" y="82" text-anchor="middle" class="svg-mono" style="font-size:10.5px">once per integration</text>
+    <text x="196" y="124" text-anchor="middle" class="svg-mono" style="font-size:10.5px;fill:var(--accent)">improvements</text>
+    <text x="196" y="138" text-anchor="middle" class="svg-mono" style="font-size:10.5px;fill:var(--accent)">flow back</text>
+    <g class="st gov" data-k="govern" tabindex="0" role="button" aria-pressed="false" aria-label="Govern">
+      <circle class="body" cx="${C.x}" cy="${C.y}" r="58" style="fill:var(--k-govern);stroke:var(--k-govern)"/>
+      <path d="M${C.x} ${C.y - 34} l-13 5 v10 c0 8 6 14 13 17 c7 -3 13 -9 13 -17 v-10 z" fill="none" stroke="var(--bg)" stroke-width="2"/>
+      <text x="${C.x}" y="${C.y + 18}" text-anchor="middle" style="font-size:14px;font-weight:700;font-family:var(--f-body);fill:var(--bg)">Govern</text>
+      <text x="${C.x}" y="${C.y + 33}" text-anchor="middle" style="font-size:10px;font-family:var(--f-mono);fill:var(--bg);opacity:.75">every stage</text>
+    </g>
+    ${node("connect")}${ringOrder.map(node).join("")}
+  </svg>`;
+
+  const panel = document.getElementById("stagePanel");
+  function select(k) {
+    const s = STAGES[k];
+    $$("#ring .st").forEach((g) => g.setAttribute("aria-pressed", String(g.dataset.k === k)));
+    panel.innerHTML = `
+      <div class="panel-head"><div class="stack" style="gap:2px"><span class="eyebrow">${s.n ? "Stage " + s.n : "The frame"}</span><h3>${s.name}</h3></div><a class="btn sm" href="${s.href}">Open page →</a></div>
+      <div class="panel-body">
+        <p>${s.lead}</p>
+        <ul class="list-check">${s.points.map((p) => `<li>${p}</li>`).join("")}</ul>
+        <div class="ex"><span class="eyebrow">Support triage at this stage</span><span>${s.ex}</span></div>
+      </div>`;
+  }
+  $$("#ring .st").forEach((g) => {
+    g.addEventListener("click", () => select(g.dataset.k));
+    g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(g.dataset.k); } });
+  });
+  select("connect");
+})();
+</script>
+
+</body></html>

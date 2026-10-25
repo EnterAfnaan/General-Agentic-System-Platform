@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trellis · Connect</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .search { max-width: 280px; }
+  .conn { cursor: pointer; text-align: left; font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 8px; align-content: start; transition: border-color .15s; min-width: 0; }
+  .conn:hover { border-color: var(--accent); }
+  .conn-top { display: flex; justify-content: space-between; gap: 8px; align-items: start; }
+  .conn b { font-size: 15px; line-height: 1.25; }
+  .conn p { font-size: 13.5px; color: var(--muted); }
+  .caps { display: flex; gap: 4px; flex-wrap: wrap; }
+  .cap { font-family: var(--f-mono); font-size: 10.5px; padding: 2px 6px; border-radius: 3px; border: 1px solid var(--line-strong); color: var(--muted); }
+  .cap.w { border-color: var(--err); color: var(--err); }
+  .cap.x { border-color: var(--k-harness); color: var(--k-harness); }
+  .count { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+  .contract-fields { display: grid; gap: 10px; }
+  .contract-fields div { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+  .contract-fields div:last-child { border-bottom: 0; }
+  .contract-fields dt { font-family: var(--f-mono); font-size: 12px; color: var(--accent); padding-top: 2px; }
+  .contract-fields dd { margin: 0; color: var(--muted); }
+  @media (max-width: 520px) { .contract-fields div { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+  .vis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+  .vis > div { padding: 18px; display: grid; gap: 10px; align-content: start; border-right: 1px solid var(--line); background: var(--surface); min-width: 0; }
+  .vis > div:last-child { border-right: 0; }
+  .vis .box { height: 70px; border-radius: 8px; display: grid; place-items: center; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+  .vis .glass { border: 2px solid var(--k-agent); background: repeating-linear-gradient(90deg, transparent 0 18px, var(--grid) 18px 19px), var(--surface-2); }
+  .vis .grey { border: 2px dashed var(--k-tool); background: var(--surface-2); }
+  .vis .black { border: 2px solid var(--ink); background: var(--ink); color: var(--bg); }
+  @media (max-width: 760px) { .vis { grid-template-columns: minmax(0, 1fr); } .vis > div { border-right: 0; border-bottom: 1px solid var(--line); } }
+  .byo { display: grid; gap: 8px; }
+  .byo .proto { font-family: var(--f-mono); font-size: 12px; color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="shell" data-page="connect">
+  <nav id="rail" class="rail" aria-label="Prototype pages"></nav>
+  <main class="main">
+    <div class="page">
+      <header class="page-head">
+        <p class="eyebrow">Stage 1 · Connect</p>
+        <h1>Everything a system can touch becomes a typed node</h1>
+        <p class="lede">A team connects a database, a vector index, a Kafka topic, an MCP server or a coding harness once. From then on it appears on the canvas as a node that declares what it can do, what data it can emit, what it costs and who may use it. Those declarations are what make the pre-flight check possible.</p>
+      </header>
+
+      <section class="section" aria-labelledby="contract-h">
+        <div class="section-head">
+          <p class="eyebrow">The node contract</p>
+          <h2 id="contract-h">Seven fields every connector declares</h2>
+          <p>Without a contract, a connector is just a URL and a secret. With one, Trellis can tell you before you run that a write has no approval, that a ticket's personal data is about to reach an external model, or that a step will take 9 seconds at p95.</p>
+        </div>
+        <div class="split">
+          <dl class="contract-fields">
+            <div><dt>capabilities</dt><dd>What the node can do: <b>read</b>, <b>write</b>, <b>stream</b> or <b>execute</b>. Writes carry a risk tier from 1 (a comment) to 3 (money moves, data is deleted).</dd></div>
+            <div><dt>emits</dt><dd>The data classes its output can contain: public, internal, confidential, PII, secret. These labels flow along graph edges.</dd></div>
+            <div><dt>boundary</dt><dd>Where data goes when this node is called: inside our tenant, a contracted processor, or the public internet.</dd></div>
+            <div><dt>cost</dt><dd>Per call, per token, per session or per GPU-hour. Pre-flight multiplies it through loops and fan-out.</dd></div>
+            <div><dt>latency</dt><dd>p50 and p95 per call. Calibrated from real traces once the node has run.</dd></div>
+            <div><dt>auth</dt><dd>Managed identity, OAuth on behalf of a user, or a vaulted key. Never a secret pasted into a node.</dd></div>
+            <div><dt>defaults</dt><dd>Policy the owner attaches: rate limits, timeouts, retries. Org policy adds the rest: tier 3 writes always need a person, tier 2 writes need a person or an output check.</dd></div>
+          </dl>
+          <div class="stack">
+            <span class="eyebrow">Example · refunds API, owned by Customer Support</span>
+<pre class="code"><span class="k">connector</span>: refunds-api
+<span class="k">kind</span>: tool            <span class="c"># HTTP, described by OpenAPI</span>
+<span class="k">owner</span>: team/customer-support
+<span class="k">capabilities</span>:
+  - read: refund_status
+  - write: issue_refund
+    <span class="k">risk_tier</span>: 3        <span class="c"># money moves</span>
+<span class="k">emits</span>: [internal, pii]
+<span class="k">boundary</span>: tenant
+<span class="k">cost</span>: { per_call_usd: 0.0004 }
+<span class="k">latency_ms</span>: { p50: 420, p95: 1300 }
+<span class="k">auth</span>: managed_identity
+<span class="k">defaults</span>:
+  timeout_s: 10
+  retries: { max: 2, on: [429, 503] }
+  approval: { required_when: <span class="s">"risk_tier >= 3"</span> }  <span class="c"># org rule</span>
+  rate_limit: 30/min</pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="cat-h">
+        <div class="section-head">
+          <p class="eyebrow">Catalog</p>
+          <h2 id="cat-h">Connectors a team can add to the canvas</h2>
+          <p>Select a connector to see its contract and which pre-flight rules read it. The catalog is shared across teams: once someone connects Kafka properly, everyone gets the same contract and defaults.</p>
+        </div>
+        <div class="filters" id="filters"></div>
+        <div class="row" style="justify-content:space-between">
+          <input class="search" type="text" id="q" placeholder="Search connectors" aria-label="Search connectors">
+          <span class="count" id="count"></span>
+        </div>
+        <div class="grid" id="catalog"></div>
+      </section>
+
+      <section class="section" aria-labelledby="byo-h">
+        <div class="section-head">
+          <p class="eyebrow">Bring your own agent</p>
+          <h2 id="byo-h">Teams keep their frameworks. Trellis wraps them.</h2>
+          <p>Nobody is asked to rewrite a working agent. There are four ways in, and each tells Trellis a different amount about what is inside.</p>
+        </div>
+        <div class="grid">
+          <div class="card byo"><span class="proto">Import a graph</span><h4>LangGraph, Agent Framework workflows</h4><p>An adapter reads the framework's graph definition and converts it into the Trellis spec. Every inner node becomes visible and checkable.</p><span class="pill accent">Glass box</span></div>
+          <div class="card byo"><span class="proto">MCP server</span><h4>Expose tools</h4><p>Any MCP server becomes a set of tool nodes. Trellis reads tool names, schemas and annotations such as read-only and destructive.</p><span class="pill info">Grey box</span></div>
+          <div class="card byo"><span class="proto">A2A agent card</span><h4>Call a remote agent</h4><p>A remote agent publishes its skills and auth needs. It becomes one node with declared inputs and outputs. Its insides stay private.</p><span class="pill info">Grey box</span></div>
+          <div class="card byo"><span class="proto">Harness or container</span><h4>Claude Code, Codex, any job</h4><p>Runs in a Trellis sandbox with a workspace, a goal, an allowed tool list and a budget. Trellis controls the boundary, not the reasoning inside.</p><span class="pill">Black box</span></div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="vis-h">
+        <div class="section-head">
+          <p class="eyebrow">An honest limit</p>
+          <h2 id="vis-h">What pre-flight can check depends on what a node shows</h2>
+          <p>A coding harness decides its own steps, so nobody can lint them in advance. What Trellis can do is control everything at its edges: what it can read, where it can send data, what it can write and how much it can spend.</p>
+        </div>
+        <div class="vis">
+          <div><div class="box glass">inner graph visible</div><h4>Glass box</h4><p class="small muted">Native Trellis graphs and imported framework graphs.</p><ul class="plain small"><li>Every lint rule applies, inside and out</li><li>Forecast per inner node</li><li>Traces map to inner nodes</li></ul></div>
+          <div><div class="box grey">tools and skills declared</div><h4>Grey box</h4><p class="small muted">MCP servers, A2A agents, CrewAI crews.</p><ul class="plain small"><li>Rules on declared tools and data classes</li><li>Forecast from observed calls</li><li>Gateway enforces tool allowlists</li></ul></div>
+          <div><div class="box black">sandbox boundary only</div><h4>Black box</h4><p class="small muted">Claude Code, Codex, containers.</p><ul class="plain small"><li>Sandbox, network egress, file scope</li><li>Budget and time caps</li><li>All tool calls go through the MCP gateway</li></ul></div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="cred-h">
+        <div class="section-head">
+          <p class="eyebrow">Credentials and ownership</p>
+          <h2 id="cred-h">Who owns a connection, and how it stays healthy</h2>
+        </div>
+        <div class="grid">
+          <div class="card"><h4>Secrets stay in the vault</h4><p>Nodes reference a secret by name. A graph spec never contains a key, so specs can be shared and reviewed in pull requests.</p></div>
+          <div class="card"><h4>Scoped per team</h4><p>A connection belongs to a team. Another team can request access, which creates an audit record and inherits the owner's defaults.</p></div>
+          <div class="card"><h4>Agent identity, not a shared login</h4><p>Each system runs as its own workload identity. Reads on behalf of a user use that user's token, so row-level security still applies.</p></div>
+          <div class="card"><h4>Health and drift</h4><p>Connections are probed every few minutes. If an MCP server changes a tool schema, every graph using it is re-checked and owners are told.</p></div>
+        </div>
+      </section>
+
+      <nav class="next-prev" aria-label="Previous and next pages">
+        <a href="index.html"><span>← Overview</span><b>The idea and the loop</b></a>
+        <a href="canvas.html#triage"><span>Next · Stage 2</span><b>Compose on the canvas →</b></a>
+      </nav>
+    </div>
+  </main>
+</div>
+<script src="shared.js"></script>
+<script>
+(function () {
+  const CATS = [
+    ["models", "Models"], ["harness", "Harnesses & frameworks"], ["db", "Databases"], ["vector", "Knowledge & vector"],
+    ["stream", "Streams & events"], ["apps", "MCP & apps"], ["compute", "Compute"], ["memory", "Memory & state"], ["people", "Human channels"]
+  ];
+  const KIND = { models: "agent", harness: "harness", db: "data", vector: "data", stream: "trigger", apps: "tool", compute: "tool", memory: "data", people: "govern" };
+  // name, cat, caps (r w s x i=infer), emits, boundary, risk, cost, latency, auth, desc, systems
+  const C = [
+    ["Azure OpenAI", "models", "i", "internal, confidential, pii", "tenant", 0, "per token · large / medium / small tiers", "p50 1.8 s · p95 6 s", "managed identity", "Hosted in our Azure tenant. Allowed to receive PII under org policy.", "triage, prreview, incident"],
+    ["Anthropic Claude", "models", "i", "internal, confidential", "processor", 0, "per token · Opus / Sonnet / Haiku", "p50 2.1 s · p95 7 s", "vaulted key or cloud marketplace", "Contracted processor. PII must be redacted first unless used through an in-tenant deployment.", "prreview"],
+    ["Google Gemini", "models", "i", "internal", "processor", 0, "per token", "p50 1.9 s · p95 6 s", "vaulted key", "Contracted processor. Internal data only by default.", ""],
+    ["Open-weight on vLLM", "models", "i", "internal, confidential, pii, secret", "tenant", 0, "per GPU-hour, amortised per token", "p50 0.9 s · p95 3 s", "network policy", "Llama, Qwen or Mistral served in our cluster. Nothing leaves the tenant.", "triage"],
+    ["Ollama (local)", "models", "i", "internal", "laptop", 0, "free", "varies", "none", "Developer laptops only. Graphs that use it cannot be promoted beyond dev.", ""],
+    ["Claude Code", "harness", "rwx", "internal, confidential", "processor", 2, "per session, about $0.40–2.50", "p50 70 s · p95 4 min", "vaulted key", "Coding harness run in a Trellis sandbox with a cloned workspace, tool allowlist and egress rules.", "prreview"],
+    ["OpenAI Codex", "harness", "rwx", "internal, confidential", "processor", 2, "per session, about $0.30–2.00", "p50 60 s · p95 3.5 min", "vaulted key", "Coding harness run in a Trellis sandbox. Writes go to a branch, never to main.", "prreview"],
+    ["Microsoft Agent Framework", "harness", "rx", "inherits", "tenant", 1, "inherits inner nodes", "inherits", "inherits", "Import workflows and agents. The inner graph becomes visible to pre-flight.", "incident"],
+    ["LangGraph", "harness", "rx", "inherits", "tenant", 1, "inherits inner nodes", "inherits", "inherits", "Import a compiled graph. Nodes, edges and conditional routes are converted to the Trellis spec.", ""],
+    ["CrewAI", "harness", "rx", "inherits", "tenant", 1, "inherits", "inherits", "inherits", "Import a crew as one node with declared agents and tools.", ""],
+    ["Any A2A agent", "harness", "rx", "declared by card", "varies", 1, "declared by card", "observed", "per agent card", "A remote agent described by an A2A agent card. One node, inputs and outputs declared.", ""],
+    ["PostgreSQL", "db", "rw", "internal, confidential, pii", "tenant", 2, "per query (compute)", "p50 40 ms · p95 400 ms", "managed identity", "Read-only by default. Writes need tier 2 approval and run in a transaction with a dry-run first.", "incident"],
+    ["SQL Server / Azure SQL", "db", "rw", "internal, confidential, pii", "tenant", 2, "per query (compute)", "p50 60 ms · p95 600 ms", "managed identity", "Includes dynamic management views for diagnostics. Read-only role by default.", "incident, triage"],
+    ["MySQL", "db", "rw", "internal, pii", "tenant", 2, "per query", "p50 30 ms · p95 300 ms", "vaulted login", "Read-only by default.", ""],
+    ["MongoDB", "db", "rw", "internal, pii", "tenant", 2, "per query", "p50 30 ms · p95 250 ms", "vaulted login", "Read-only by default. Aggregation pipelines checked for unbounded scans.", ""],
+    ["Snowflake", "db", "r", "internal, confidential", "processor", 0, "per credit", "p50 1.2 s · p95 9 s", "OAuth on behalf of user", "Analytics warehouse. Queries run with the requesting user's role.", ""],
+    ["Azure AI Search", "vector", "r", "internal, pii", "tenant", 0, "per query + index units", "p50 120 ms · p95 600 ms", "managed identity", "Hybrid keyword and vector search over the help center and runbooks.", "triage"],
+    ["pgvector", "vector", "rw", "internal, confidential", "tenant", 1, "per query", "p50 50 ms · p95 300 ms", "managed identity", "Vector search inside PostgreSQL. Also used for episodic memory.", "incident"],
+    ["Qdrant", "vector", "rw", "internal", "tenant", 1, "per node-hour", "p50 30 ms · p95 200 ms", "vaulted key", "Self-hosted vector database.", ""],
+    ["Pinecone", "vector", "rw", "internal", "processor", 1, "per read/write unit", "p50 60 ms · p95 400 ms", "vaulted key", "Managed vector database. Internal data only.", ""],
+    ["Elasticsearch / OpenSearch", "vector", "r", "internal, pii", "tenant", 0, "per node-hour", "p50 80 ms · p95 500 ms", "vaulted key", "Keyword and vector search, plus log search for incident work.", "incident"],
+    ["SharePoint & Confluence", "vector", "r", "internal, confidential", "tenant", 0, "ingestion jobs", "batch", "OAuth on behalf of user", "Document sources for knowledge indexes. Permissions are carried into the index.", "triage"],
+    ["Apache Kafka", "stream", "rs", "internal, pii", "tenant", 1, "per partition-hour", "streaming", "SASL / mTLS", "Topics become triggers. Consumer groups are per system so replays do not collide.", "incident"],
+    ["Azure Event Hubs", "stream", "rs", "internal", "tenant", 1, "per throughput unit", "streaming", "managed identity", "Event triggers, including Azure Monitor alerts.", "incident"],
+    ["Azure Service Bus", "stream", "rws", "internal", "tenant", 1, "per operation", "p50 20 ms", "managed identity", "Queues for long-running hand-offs between systems.", ""],
+    ["Webhook", "stream", "s", "declared per hook", "internet", 0, "free", "n/a", "signed secret", "Inbound trigger from any system that can POST. Payload is untrusted by default.", "triage"],
+    ["GitHub (MCP)", "apps", "rw", "internal, confidential", "processor", 1, "free within rate limits", "p50 300 ms", "GitHub App", "Read code and pull requests, post review comments. Merging is tier 3 and needs approval.", "prreview"],
+    ["Jira", "apps", "rw", "internal", "processor", 1, "free within rate limits", "p50 400 ms", "OAuth", "Create and update issues.", "incident"],
+    ["ServiceNow", "apps", "rw", "internal, pii", "processor", 2, "per call", "p50 700 ms", "OAuth", "Incidents and change requests. Change requests are tier 2.", "incident"],
+    ["Zendesk", "apps", "rw", "pii", "processor", 1, "per call", "p50 350 ms", "OAuth", "Ticket trigger and reply. Customer-visible replies are tier 2.", "triage"],
+    ["Slack", "apps", "rw", "internal", "processor", 1, "free", "p50 250 ms", "Slack app", "Post messages and receive approvals.", ""],
+    ["Any MCP server", "apps", "rw", "declared", "varies", 1, "declared", "observed", "per server", "Tools are imported with their schemas and read-only or destructive annotations.", ""],
+    ["Python code node", "compute", "x", "inherits inputs", "tenant", 1, "per CPU-second", "your code", "none (sandbox)", "Your own code in a sandbox with no network unless you declare it. Inputs and outputs are typed.", "prreview, incident"],
+    ["Container job", "compute", "x", "declared", "tenant", 1, "per vCPU-second", "your code", "workload identity", "Run any image as a node, for example a test suite or a data job.", "prreview"],
+    ["HTTP / OpenAPI", "compute", "rw", "declared", "varies", 1, "declared", "declared", "per API", "Any REST API described by OpenAPI. Each operation becomes a tool with a risk tier.", "triage"],
+    ["Redis", "memory", "rw", "internal", "tenant", 0, "per node-hour", "p50 2 ms", "managed identity", "Short-term working memory and caches.", ""],
+    ["Checkpoint store", "memory", "rw", "inherits run state", "tenant", 0, "per GB", "p50 15 ms", "platform", "Run state saved at each node boundary, so runs can pause, resume and fork.", "triage, prreview, incident"],
+    ["Cosmos DB", "memory", "rw", "internal, pii", "tenant", 1, "per request unit", "p50 10 ms", "managed identity", "Long-term semantic and episodic memory with per-team partitions.", ""],
+    ["Approvals in Teams", "people", "s", "shows the action's data", "tenant", 0, "free", "minutes to hours", "Entra ID", "An adaptive card with the exact action, evidence and cost. Approve, reject or edit.", "triage, incident"],
+    ["Approvals in Slack", "people", "s", "shows the action's data", "processor", 0, "free", "minutes to hours", "Slack app", "Same approval card in Slack for teams that live there.", "prreview"],
+    ["Email digest", "people", "s", "summaries only", "tenant", 0, "free", "batch", "platform", "Daily summary of runs, proposals and spend for leads.", ""],
+  ];
+  const SYS = { triage: "Support triage", prreview: "PR review", incident: "Incident investigator" };
+  const CAPN = { r: "read", w: "write", s: "stream", x: "execute", i: "infer" };
+  const RULES = {
+    w: ["S-01 High-risk write without approval", "R-02 External call without timeout or retry"],
+    x: ["S-02 Harness without sandbox", "C-02 Context growth across iterations"],
+    i: ["D-01 Data class leaves its boundary", "C-01 Oversized model for the step"],
+    r: ["D-01 Data class leaves its boundary", "S-03 Untrusted content reaches a tool-using agent"],
+    s: ["S-03 Untrusted content reaches a tool-using agent", "T-03 Unbounded fan-out"]
+  };
+  let cat = "all";
+  const fEl = $("#filters"), q = $("#q");
+  fEl.innerHTML = [["all", "All"], ...CATS].map(([k, n]) => `<button class="chip" data-c="${k}" aria-pressed="${k === "all"}">${n}</button>`).join("");
+  fEl.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; cat = b.dataset.c; $$("button", fEl).forEach((x) => x.setAttribute("aria-pressed", String(x === b))); render(); });
+  q.addEventListener("input", render);
+
+  function caps(s) { return s.split("").map((c) => `<span class="cap ${c === "w" ? "w" : c === "x" ? "x" : ""}">${CAPN[c]}</span>`).join(""); }
+  function render() {
+    const term = q.value.trim().toLowerCase();
+    const list = C.map((c, i) => [c, i]).filter(([c]) => (cat === "all" || c[1] === cat) && (!term || (c[0] + " " + c[9]).toLowerCase().includes(term)));
+    $("#count").textContent = `${list.length} of ${C.length} connectors`;
+    $("#catalog").innerHTML = list.length ? list.map(([c, i]) => `
+      <button class="conn" data-i="${i}">
+        <span class="conn-top"><b>${esc(c[0])}</b>${c[5] >= 2 ? '<span class="pill warn">Tier ' + c[5] + "</span>" : ""}</span>
+        <span class="kind k-${KIND[c[1]]}">${CATS.find((x) => x[0] === c[1])[1]}</span>
+        <p>${esc(c[9])}</p>
+        <span class="caps">${caps(c[2])}</span>
+      </button>`).join("") : `<p class="muted">No connector matches "${esc(term)}". Any MCP server or OpenAPI service can still be added as a generic connector.</p>`;
+  }
+  $("#catalog").addEventListener("click", (e) => {
+    const b = e.target.closest(".conn"); if (!b) return;
+    const c = C[+b.dataset.i];
+    const id = c[0].toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const rules = [...new Set(c[2].split("").flatMap((k) => RULES[k] || []))];
+    const used = c[10] ? c[10].split(", ").map((s) => `<a class="chip" href="canvas.html#${s}">${SYS[s]}</a>`).join(" ") : '<span class="muted small">Not used by the three example systems.</span>';
+    openDrawer(`
+      <div class="drawer-head"><div class="stack" style="gap:4px"><span class="kind k-${KIND[c[1]]}">${CATS.find((x) => x[0] === c[1])[1]}</span><h2 style="font-size:26px">${esc(c[0])}</h2></div><button class="btn sm ghost" data-close aria-label="Close">Close</button></div>
+      <p>${esc(c[9])}</p>
+      <div class="caps">${caps(c[2])}${c[5] ? `<span class="pill ${c[5] >= 2 ? "warn" : "info"}">Write risk tier ${c[5]}</span>` : ""}</div>
+      <div class="stack"><span class="eyebrow">Contract</span>
+<pre class="code"><span class="k">connector</span>: ${id}
+<span class="k">capabilities</span>: [${c[2].split("").map((k) => CAPN[k]).join(", ")}]
+<span class="k">emits</span>: [${c[3]}]
+<span class="k">boundary</span>: ${c[4]}
+<span class="k">cost</span>: <span class="s">"${c[6]}"</span>
+<span class="k">latency</span>: <span class="s">"${c[7]}"</span>
+<span class="k">auth</span>: ${c[8]}${c[5] >= 2 ? `
+<span class="k">defaults</span>:
+  tier_2_writes: approval_or_output_check
+  tier_3_writes: approval` : ""}</pre></div>
+      <div class="stack"><span class="eyebrow">Pre-flight rules that read this contract</span><ul class="plain small">${rules.map((r) => `<li><a href="check.html#rules">${r}</a></li>`).join("")}</ul></div>
+      <div class="stack"><span class="eyebrow">Used in the example systems</span><div class="row">${used}</div></div>`);
+  });
+  render();
+})();
+</script>
+</body>
+</html>

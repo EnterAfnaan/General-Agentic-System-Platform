@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trellis · Check</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .outputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 14px; }
+  .outputs .card .big { font-family: var(--f-display); font-size: 30px; font-weight: 700; }
+  .term { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .term .e { color: var(--err-soft); }
+  .term .w { color: var(--warn-soft); }
+  .term .d { opacity: .65; }
+  .sim { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 18px; align-items: start; }
+  @media (max-width: 860px) { .sim { grid-template-columns: minmax(0, 1fr); } }
+  .controls { display: grid; gap: 14px; }
+  .hist svg { width: 100%; height: auto; display: block; }
+  .hist .hbar { fill: var(--accent); opacity: .8; }
+  .hist .axis { stroke: var(--line-strong); }
+  .hist .tick { font: 10.5px var(--f-mono); fill: var(--muted); }
+  .hist .mark { stroke-width: 1.5; stroke-dasharray: 4 3; }
+  .hist .m50 { stroke: var(--ink); }
+  .hist .m95 { stroke: var(--err); }
+  .hist .ml { font: 600 11px var(--f-mono); }
+  .rating-row { display: grid; grid-template-columns: 170px minmax(0, 1fr) 46px; gap: 12px; align-items: center; font-size: 14px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .rating-row:last-child { border-bottom: 0; }
+  .rating-row .bar { height: 10px; }
+  .rating-row .bar > i { transition: width .35s; }
+  .rating-row small { display: block; color: var(--muted); font-size: 12.5px; }
+  @media (max-width: 560px) { .rating-row { grid-template-columns: minmax(0, 1fr) 46px; } .rating-row .bar { grid-column: 1 / -1; grid-row: 2; } }
+  .bigscore { font-family: var(--f-display); font-size: 56px; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .ba { display: grid; grid-template-columns: minmax(0, 1fr) 30px minmax(0, 1fr); gap: 10px; align-items: center; }
+  .ba svg { width: 100%; height: auto; display: block; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; }
+  .ba .arrow { text-align: center; color: var(--accent); font-size: 20px; }
+  @media (max-width: 640px) { .ba { grid-template-columns: minmax(0, 1fr); } .ba .arrow { transform: rotate(90deg); } }
+  .delta { display: flex; gap: 8px; flex-wrap: wrap; }
+  td.rule-id { font-family: var(--f-mono); font-size: 12.5px; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="shell" data-page="check">
+  <nav id="rail" class="rail" aria-label="Prototype pages"></nav>
+  <main class="main">
+    <div class="page">
+      <header class="page-head">
+        <p class="eyebrow">Stage 3 · Check</p>
+        <h1>Pre-flight: find the problems before the first run</h1>
+        <p class="lede">A compiler reads code and refuses to build it if the types do not line up. Pre-flight does the same for an agent system. It reads the graph and the contracts of every node, then reports what will break, what it will cost and how safe it is. This is the part of Trellis that few tools offer today, and the one to build first.</p>
+      </header>
+
+      <section class="section" aria-labelledby="out-h">
+        <div class="section-head">
+          <p class="eyebrow">What you get</p>
+          <h2 id="out-h">Three outputs from one pass over the graph</h2>
+        </div>
+        <div class="outputs">
+          <div class="card"><span class="eyebrow">1 · Lint</span><span class="big">Findings</span><p>Errors block promotion beyond dev. Warnings need an owner's sign-off. Suggestions are optional. Every finding names the node, the reason and a fix that can be applied in one click.</p></div>
+          <div class="card"><span class="eyebrow">2 · Forecast</span><span class="big">Cost & time</span><p>Per run and per month, at p50 and p95, with human wait reported separately. Estimated from contracts at first, then calibrated against the system's own traces.</p></div>
+          <div class="card"><span class="eyebrow">3 · Rating</span><span class="big">0–100</span><p>A weighted score across safety, data protection, reliability, cost, quality and observability. It helps teams compare systems and track progress. It never replaces the error gate.</p></div>
+        </div>
+        <div class="split">
+          <div class="stack">
+            <h3>It runs in four places</h3>
+            <ul class="list-check">
+              <li><span><b>On the canvas</b>, on every edit, as on the Compose page.</span></li>
+              <li><span><b>In the terminal</b> with <code>trellis preflight</code>, for teams who write the spec by hand.</span></li>
+              <li><span><b>In CI</b> as a required check on any pull request that changes a graph, a prompt or a policy.</span></li>
+              <li><span><b>On drift.</b> When a connector changes a tool schema, a model is retired or org policy tightens, every affected graph is re-checked and its owner is told.</span></li>
+            </ul>
+          </div>
+<pre class="code term" aria-label="Example CI output"><span class="d">$</span> trellis preflight systems/support-triage.trellis.yaml
+
+<span class="e">✗ S-01 error</span>  "Issue refund" writes at tier 3, no approval   <span class="d">t12</span>
+<span class="e">✗ D-01 error</span>  PII from "Order history" reaches an
+               external model in "Check refund eligibility" <span class="d">t11</span>
+<span class="w">• C-01 hint </span>  "Classify intent" uses a large model         <span class="d">t3</span>
+
+forecast  cost/run  p50 $0.020   p95 $0.030
+          latency   p50 13.6 s   p95 17.7 s
+rating    61/100
+gate      <span class="e">FAIL</span>  2 errors must be fixed before staging</pre>
+        </div>
+      </section>
+
+      <section class="section" id="rules" aria-labelledby="rules-h">
+        <div class="section-head">
+          <p class="eyebrow">Rule catalog</p>
+          <h2 id="rules-h">Seventeen rules to start with</h2>
+          <p>Each rule reads the graph shape plus node contracts. "Needs" says how much of a node must be visible for the rule to work. Rules marked glass box cannot see inside a coding harness.</p>
+        </div>
+        <div class="row" id="ruleFilters"></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Severity</th><th>Detects</th><th>Why it matters</th><th>Suggested fix</th><th>Needs</th></tr></thead>
+            <tbody id="ruleRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="forecast" aria-labelledby="fc-h">
+        <div class="section-head">
+          <p class="eyebrow">Forecast simulator</p>
+          <h2 id="fc-h">What an investigation loop will really cost</h2>
+          <p>This simulates 2,000 runs of a loop like the incident investigator. Each run draws its iteration count and token use at random. Move the controls and watch the long tail. The average is rarely the number that hurts.</p>
+        </div>
+        <div class="sim">
+          <div class="panel"><div class="panel-body controls" id="controls"></div></div>
+          <div class="stack">
+            <div class="stats" id="simStats"></div>
+            <div class="panel hist"><div class="panel-head"><span class="eyebrow">Cost per run across 2,000 simulated runs</span><span class="small muted" id="histNote"></span></div><div class="panel-body" id="hist"></div></div>
+            <div class="callout"><b>Static estimate vs calibrated</b><p>Before a system runs, the forecast uses declared token counts and wide uncertainty. After a few hundred runs Trellis fits the real distributions from traces, so the band narrows. Usually the mean moves too, because declared numbers tend to be guesses.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="rate-h">
+        <div class="section-head">
+          <p class="eyebrow">Rating</p>
+          <h2 id="rate-h">How the support-triage system scores, before and after its fixes</h2>
+          <p>Six dimensions, each scored from findings, contracts, eval results and trace coverage. Weights are set by org policy. A system with any open error cannot be promoted, whatever its score.</p>
+        </div>
+        <div class="row"><div class="seg" role="group" aria-label="Rating state" style="display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden">
+          <button class="chip" data-r="before" aria-pressed="true" style="border-radius:0">Before fixes</button>
+          <button class="chip" data-r="after" aria-pressed="false" style="border-radius:0">After fixes</button>
+        </div></div>
+        <div class="split-wide">
+          <div class="panel"><div class="panel-body" id="ratingRows" style="gap:0"></div></div>
+          <div class="card" style="justify-items:start">
+            <span class="eyebrow">Overall</span>
+            <span class="bigscore" id="score">61</span>
+            <span class="pill" id="gate">Blocked: 2 errors</span>
+            <p id="scoreNote"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="fix-h">
+        <div class="section-head">
+          <p class="eyebrow">Suggested corrections</p>
+          <h2 id="fix-h">Three fixes pre-flight proposes, shown as graph changes</h2>
+          <p>A suggestion is a diff to the graph, not a paragraph of advice. It is applied, re-checked and re-forecast before anyone accepts it.</p>
+        </div>
+        <div class="stack" style="gap:28px">
+          <div class="stack">
+            <h3>Give a loop a way out</h3>
+            <div class="ba">
+              <svg viewBox="0 0 320 120" aria-label="Before: a loop of pick, query, score with no exit">
+                <g fill="none" stroke="var(--line-strong)" stroke-width="1.5"><path d="M86 70h18M168 70h18"/><path d="M250 58c0-46-200-46-200 0" stroke="var(--accent)" stroke-dasharray="5 4"/></g>
+                <rect x="22" y="56" width="64" height="28" rx="5" fill="var(--surface)" stroke="var(--k-agent)" stroke-width="1.5"/><text x="54" y="74" text-anchor="middle" class="svg-text" style="font-size:11px">Pick test</text>
+                <rect x="104" y="56" width="64" height="28" rx="5" fill="var(--surface)" stroke="var(--k-data)" stroke-width="1.5"/><text x="136" y="74" text-anchor="middle" class="svg-text" style="font-size:11px">Query</text>
+                <rect x="186" y="56" width="64" height="28" rx="5" fill="var(--surface)" stroke="var(--k-agent)" stroke-width="1.5"/><text x="218" y="74" text-anchor="middle" class="svg-text" style="font-size:11px">Score</text>
+                <text x="160" y="108" text-anchor="middle" class="svg-mono" style="font-size:10.5px;fill:var(--err)">p95 cost: unbounded</text>
+              </svg>
+              <span class="arrow" aria-hidden="true">→</span>
+              <svg viewBox="0 0 320 120" aria-label="After: an exit node with success test, 6 iterations and a budget">
+                <g fill="none" stroke="var(--line-strong)" stroke-width="1.5"><path d="M74 70h12M134 70h12M194 70h12"/><path d="M254 70h14"/><path d="M230 56c0-44-182-44-182 0" stroke="var(--accent)" stroke-dasharray="5 4"/></g>
+                <rect x="18" y="56" width="56" height="28" rx="5" fill="var(--surface)" stroke="var(--k-agent)" stroke-width="1.5"/><text x="46" y="74" text-anchor="middle" class="svg-text" style="font-size:11px">Pick</text>
+                <rect x="86" y="56" width="48" height="28" rx="5" fill="var(--surface)" stroke="var(--k-data)" stroke-width="1.5"/><text x="110" y="74" text-anchor="middle" class="svg-text" style="font-size:11px">Query</text>
+                <rect x="146" y="56" width="48" height="28" rx="5" fill="var(--surface)" stroke="var(--k-agent)" stroke-width="1.5"/><text x="170" y="74" text-anchor="middle" class="svg-text" style="font-size:11px">Score</text>
+                <rect x="206" y="56" width="48" height="28" rx="5" fill="var(--k-control)"/><text x="230" y="74" text-anchor="middle" style="font-size:11px;font-weight:600;fill:var(--surface);font-family:var(--f-body)">Exit</text>
+                <rect x="268" y="56" width="44" height="28" rx="5" fill="var(--surface)" stroke="var(--k-tool)" stroke-width="1.5"/><text x="290" y="74" text-anchor="middle" class="svg-text" style="font-size:11px">Report</text>
+                <text x="160" y="108" text-anchor="middle" class="svg-mono" style="font-size:10.5px;fill:var(--ok)">p95 cost: $0.14 · max 6 passes</text>
+              </svg>
+            </div>
+            <div class="delta"><span class="pill ok">T-01 resolved</span><span class="pill info">p95 cost unbounded → $0.14</span><span class="pill info">adds 0 ms on the happy path</span></div>
+          </div>
+          <div class="stack">
+            <h3>Split one large agent into a cheap router and a strong writer</h3>
+            <div class="ba">
+              <svg viewBox="0 0 320 110" aria-label="Before: one large model classifies and drafts">
+                <g fill="none" stroke="var(--line-strong)" stroke-width="1.5"><path d="M80 52h40M220 52h30"/></g>
+                <rect x="20" y="38" width="60" height="28" rx="5" fill="var(--surface)" stroke="var(--k-trigger)" stroke-width="1.5"/><text x="50" y="56" text-anchor="middle" class="svg-text" style="font-size:11px">Ticket</text>
+                <rect x="120" y="34" width="100" height="36" rx="5" fill="var(--surface)" stroke="var(--k-agent)" stroke-width="2"/><text x="170" y="50" text-anchor="middle" class="svg-text" style="font-size:11px">Classify + draft</text><text x="170" y="63" text-anchor="middle" class="svg-mono" style="font-size:9.5px">large · every ticket</text>
+                <rect x="250" y="38" width="54" height="28" rx="5" fill="var(--surface)" stroke="var(--k-tool)" stroke-width="1.5"/><text x="277" y="56" text-anchor="middle" class="svg-text" style="font-size:11px">Reply</text>
+                <text x="160" y="96" text-anchor="middle" class="svg-mono" style="font-size:10.5px;fill:var(--muted)">$0.047 per ticket</text>
+              </svg>
+              <span class="arrow" aria-hidden="true">→</span>
+              <svg viewBox="0 0 320 110" aria-label="After: a small classifier routes, a large model drafts only questions">
+                <g fill="none" stroke="var(--line-strong)" stroke-width="1.5"><path d="M70 52h14M144 52l20-22M144 52l20 22M234 30h16"/></g>
+                <rect x="14" y="38" width="56" height="28" rx="5" fill="var(--surface)" stroke="var(--k-trigger)" stroke-width="1.5"/><text x="42" y="56" text-anchor="middle" class="svg-text" style="font-size:11px">Ticket</text>
+                <rect x="84" y="38" width="60" height="28" rx="5" fill="var(--surface)" stroke="var(--k-agent)" stroke-width="1.5"/><text x="114" y="56" text-anchor="middle" class="svg-text" style="font-size:11px">Classify</text>
+                <rect x="164" y="16" width="70" height="28" rx="5" fill="var(--surface)" stroke="var(--k-agent)" stroke-width="2"/><text x="199" y="34" text-anchor="middle" class="svg-text" style="font-size:11px">Draft (large)</text>
+                <rect x="164" y="62" width="70" height="28" rx="5" fill="var(--surface)" stroke="var(--k-tool)" stroke-width="1.5"/><text x="199" y="80" text-anchor="middle" class="svg-text" style="font-size:11px">Queue / refund</text>
+                <rect x="250" y="16" width="54" height="28" rx="5" fill="var(--surface)" stroke="var(--k-tool)" stroke-width="1.5"/><text x="277" y="34" text-anchor="middle" class="svg-text" style="font-size:11px">Reply</text>
+                <text x="160" y="106" text-anchor="middle" class="svg-mono" style="font-size:10.5px;fill:var(--ok)">$0.020 per ticket</text>
+              </svg>
+            </div>
+            <div class="delta"><span class="pill ok">C-01 resolved</span><span class="pill info">cost −57%</span><span class="pill info">eval: 91.2% → 91.0% on 412 cases</span></div>
+          </div>
+          <div class="stack">
+            <h3>Move redaction to where the personal data enters</h3>
+            <div class="ba">
+              <svg viewBox="0 0 320 110" aria-label="Before: order history flows straight into an external model">
+                <g fill="none" stroke="var(--line-strong)" stroke-width="1.5"><path d="M98 52h40"/><path d="M98 52h40" stroke="var(--err)" stroke-width="2.5" stroke-dasharray="3 3"/></g>
+                <rect x="22" y="38" width="76" height="28" rx="5" fill="var(--surface)" stroke="var(--k-data)" stroke-width="1.5"/><text x="60" y="56" text-anchor="middle" class="svg-text" style="font-size:11px">Order history</text>
+                <rect x="138" y="34" width="120" height="36" rx="5" fill="var(--surface)" stroke="var(--k-agent)" stroke-width="1.5"/><text x="198" y="50" text-anchor="middle" class="svg-text" style="font-size:11px">Check eligibility</text><text x="198" y="63" text-anchor="middle" class="svg-mono" style="font-size:9.5px;fill:var(--err)">external model</text>
+                <text x="118" y="44" text-anchor="middle" class="svg-mono" style="font-size:9.5px;fill:var(--err)">PII</text>
+                <text x="160" y="96" text-anchor="middle" class="svg-mono" style="font-size:10.5px;fill:var(--err)">D-01: PII leaves the tenant</text>
+              </svg>
+              <span class="arrow" aria-hidden="true">→</span>
+              <svg viewBox="0 0 320 110" aria-label="After: a PII redaction guardrail sits between the data and the model">
+                <g fill="none" stroke="var(--line-strong)" stroke-width="1.5"><path d="M90 52h16M178 52h16"/></g>
+                <rect x="14" y="38" width="76" height="28" rx="5" fill="var(--surface)" stroke="var(--k-data)" stroke-width="1.5"/><text x="52" y="56" text-anchor="middle" class="svg-text" style="font-size:11px">Order history</text>
+                <rect x="106" y="38" width="72" height="28" rx="5" fill="var(--k-govern)"/><text x="142" y="56" text-anchor="middle" style="font-size:11px;font-weight:600;fill:var(--bg);font-family:var(--f-body)">Redact PII</text>
+                <rect x="194" y="34" width="112" height="36" rx="5" fill="var(--surface)" stroke="var(--k-agent)" stroke-width="1.5"/><text x="250" y="50" text-anchor="middle" class="svg-text" style="font-size:11px">Check eligibility</text><text x="250" y="63" text-anchor="middle" class="svg-mono" style="font-size:9.5px">external model</text>
+                <text x="160" y="96" text-anchor="middle" class="svg-mono" style="font-size:10.5px;fill:var(--ok)">labels downstream: internal only</text>
+              </svg>
+            </div>
+            <div class="delta"><span class="pill ok">D-01 resolved</span><span class="pill info">+120 ms per refund run</span><span class="pill info">alternative: switch to an in-tenant model</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="lim-h">
+        <div class="section-head">
+          <p class="eyebrow">Limits</p>
+          <h2 id="lim-h">What pre-flight cannot promise</h2>
+          <p>Pre-flight is a gate, not a guarantee. It checks structure and declared contracts. These four things still need runtime guardrails and evals:</p>
+        </div>
+        <div class="grid">
+          <div class="card"><h4>What the model decides</h4><p>A graph can be well formed and still produce a wrong answer. Quality comes from evals, not lint.</p></div>
+          <div class="card"><h4>Steps inside a harness</h4><p>Claude Code and Codex pick their own steps. Pre-flight controls their boundary, not their plan.</p></div>
+          <div class="card"><h4>Data-dependent loops</h4><p>How many passes a hard case needs is only known from runs. The forecast gives a band, then calibrates it.</p></div>
+          <div class="card"><h4>New attacks</h4><p>An injection screen catches known patterns. Least privilege and approvals limit the damage when it misses.</p></div>
+        </div>
+      </section>
+
+      <nav class="next-prev" aria-label="Previous and next pages">
+        <a href="canvas.html#triage"><span>← Stage 2</span><b>Compose on the canvas</b></a>
+        <a href="run.html"><span>Next · Stage 4</span><b>Run & observe →</b></a>
+      </nav>
+    </div>
+  </main>
+</div>
+<script src="shared.js"></script>
+<script>
+(function () {
+  // ---------- rule catalog ----------
+  const G = { T: "Termination", S: "Safety", D: "Data", C: "Cost", R: "Reliability", O: "Observability" };
+  const RULES = [
+    ["T-01", "error", "A loop with no exit node", "Runs until a timeout or a bill stops it. p95 cost is unbounded.", "Insert exit: success test, max iterations, budget", "graph"],
+    ["T-02", "error", "An exit whose success test reads a field no node produces", "The success branch can never be taken, so every run ends on the cap.", "Point the test at a produced field", "glass box"],
+    ["T-03", "warn", "Fan-out over a list with no maximum", "One PR with 900 files becomes 900 harness sessions.", "Cap items, batch the rest", "graph"],
+    ["T-04", "warn", "An exit with a success test but no cap or budget", "If the test is never met, there is still no ceiling.", "Add max iterations and budget", "graph"],
+    ["S-01", "error", "Tier 3 write with no approval; tier 2 with no approval or output check", "Money moves or customers see output that nobody checked.", "Insert approval before the write", "contracts"],
+    ["S-02", "error", "Harness outside a sandbox, or with open network egress", "The harness can read host secrets or send code anywhere.", "Sandbox it; allowlist egress", "contracts"],
+    ["S-03", "warn", "Untrusted text reaches a node that can act, with no screen", "Instructions hidden in a ticket or PR can steer tool calls.", "Insert injection screen after the source", "contracts"],
+    ["S-04", "info", "An agent granted tools it has not used in 200 runs", "Unused permissions are attack surface with no benefit.", "Remove the tools from the grant", "traces"],
+    ["D-01", "error", "A data class reaches a node outside its allowed boundary", "PII reaches a model or store that policy does not allow.", "Insert redaction, or switch to an in-tenant model", "contracts"],
+    ["D-02", "warn", "Memory write of PII with no retention rule", "Personal data lingers in vector memory indefinitely.", "Set retention and a deletion path", "contracts"],
+    ["C-01", "info", "A large model on a classify or extract step", "Small models usually match on these tasks at a fraction of the cost.", "Swap the model, run the eval set", "contracts + evals"],
+    ["C-02", "warn", "Context grows on every loop pass", "Input tokens compound about 1.5× per pass.", "Compact context between iterations", "graph"],
+    ["C-03", "info", "Static prompt prefix placed after dynamic content", "Prompt caching misses on every call.", "Reorder: instructions and tools first", "glass box"],
+    ["R-01", "warn", "Approval with no timeout or fallback", "Runs sit open forever when nobody answers.", "Timeout, then escalate", "graph"],
+    ["R-02", "warn", "External call with no timeout or retry policy", "One slow API stalls the whole run.", "Inherit connector defaults", "contracts"],
+    ["R-03", "error", "Checkpoints off while the graph waits for people", "A restart loses the run and repays every step before it.", "Checkpoint at every node", "graph"],
+    ["O-01", "warn", "No eval set attached", "No one can tell whether a change helps. Quality cannot be rated.", "Bootstrap from recent runs plus written cases", "system"]
+  ];
+  let grp = "all";
+  const f = $("#ruleFilters");
+  f.innerHTML = [["all", "All"], ...Object.entries(G)].map(([k, v]) => `<button class="chip" data-g="${k}" aria-pressed="${k === "all"}">${v}</button>`).join("");
+  f.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; grp = b.dataset.g; $$("button", f).forEach((x) => x.setAttribute("aria-pressed", String(x === b))); rules(); });
+  function rules() {
+    $("#ruleRows").innerHTML = RULES.filter((r) => grp === "all" || r[0][0] === grp).map((r) => `<tr><td class="rule-id">${r[0]}<br><span class="small muted" style="font-family:var(--f-body)">${G[r[0][0]]}</span></td><td><span class="pill ${r[1] === "error" ? "err" : r[1] === "warn" ? "warn" : "info"}">${r[1] === "info" ? "suggestion" : r[1] === "warn" ? "warning" : "error"}</span></td><td>${r[2]}</td><td class="muted">${r[3]}</td><td>${r[4]}</td><td><span class="pill">${r[5]}</span></td></tr>`).join("");
+  }
+  rules();
+
+  // ---------- forecast simulator ----------
+  const TIERS = { large: { n: "Large · in-tenant", pin: 2.5, pout: 10, base: 700, mpt: 22 }, medium: { n: "Medium · in-tenant", pin: 0.4, pout: 1.6, base: 450, mpt: 12 }, small: { n: "Small · in-tenant", pin: 0.1, pout: 0.4, base: 300, mpt: 7 } };
+  const P = { runs: 400, tier: "large", tin: 4000, tout: 300, exp: 3, max: 8, compact: false, cache: 30, appr: 15, wait: 25, calibrated: false };
+  const ctl = $("#controls");
+  const range = (k, label, min, max, step, unit) => `<label class="field"><span><span>${label}</span><output id="o_${k}">${P[k]}${unit || ""}</output></span><input type="range" id="c_${k}" min="${min}" max="${max}" step="${step}" value="${P[k]}"></label>`;
+  ctl.innerHTML = `
+    ${range("runs", "Runs per day", 10, 5000, 10)}
+    <label class="field"><span>Model for the reasoning steps</span><select id="c_tier">${Object.entries(TIERS).map(([k, t]) => `<option value="${k}"${k === P.tier ? " selected" : ""}>${t.n}</option>`).join("")}</select></label>
+    ${range("tin", "Input tokens per step", 500, 16000, 250)}
+    ${range("exp", "Expected loop passes", 1, 8, 1)}
+    ${range("max", "Max loop passes (exit cap)", 1, 20, 1)}
+    <label class="switch"><input type="checkbox" id="c_compact"> Compact context between passes</label>
+    ${range("cache", "Prompt cache hit rate", 0, 90, 5, "%")}
+    ${range("appr", "Runs needing human approval", 0, 100, 5, "%")}
+    ${range("wait", "Median approval wait", 1, 240, 1, " min")}
+    <label class="switch"><input type="checkbox" id="c_calibrated"> Calibrated from 2,340 real runs</label>`;
+  ctl.addEventListener("input", (e) => {
+    const k = e.target.id.slice(2); if (!(k in P)) return;
+    P[k] = e.target.type === "checkbox" ? e.target.checked : e.target.tagName === "SELECT" ? e.target.value : +e.target.value;
+    if (k === "exp" && P.max < P.exp) { P.max = P.exp; $("#c_max").value = P.max; }
+    if (k === "max" && P.exp > P.max) { P.exp = P.max; $("#c_exp").value = P.exp; }
+    ["runs", "tin", "exp", "max", "cache", "appr", "wait"].forEach((x) => { const o = $("#o_" + x); if (o) o.textContent = P[x] + (x === "cache" || x === "appr" ? "%" : x === "wait" ? " min" : ""); });
+    sim();
+  });
+  // seeded random so the picture is stable between renders
+  let seed = 7; const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  const normal = () => { let u = 0, v = 0; while (!u) u = rnd(); while (!v) v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  const q = (arr, p) => arr[Math.min(arr.length - 1, Math.floor(p * arr.length))];
+  function sim() {
+    seed = 7;
+    const t = TIERS[P.tier], N = 2000, sigma = P.calibrated ? 0.14 : 0.38, bias = P.calibrated ? 0.82 : 1;
+    const g = P.compact ? 1.05 : 1.5, pIn = t.pin * (1 - (P.cache / 100) * 0.75);
+    const costs = [], lats = [], waits = []; let capped = 0;
+    const pSucc = 1 / Math.max(1, P.exp);
+    for (let r = 0; r < N; r++) {
+      let it = 1; while (rnd() > pSucc && it < 60) it++;
+      if (it > P.max) { it = P.max; capped++; }
+      let c = 0.004, l = 2200;
+      for (let i = 0; i < it; i++) {
+        const tin = P.tin * Math.pow(g, i) * bias * Math.exp(sigma * normal());
+        const tout = P.tout * bias * Math.exp(sigma * normal());
+        c += 2 * (tin * pIn + tout * t.pout) / 1e6; // two reasoning calls per pass
+        l += 2 * (t.base + tout * t.mpt) + 300;
+      }
+      costs.push(c); lats.push(l);
+      if (rnd() < P.appr / 100) waits.push(P.wait * Math.exp(0.6 * normal()));
+    }
+    const sc = [...costs].sort((a, b) => a - b), sl = [...lats].sort((a, b) => a - b), sw = waits.sort((a, b) => a - b);
+    const mean = costs.reduce((s, x) => s + x, 0) / N;
+    const p50 = q(sc, 0.5), p95 = q(sc, 0.95), p99 = q(sc, 0.99);
+    const month = mean * P.runs * 30;
+    $("#simStats").innerHTML = `
+      <div class="stat"><span class="label">Cost per run</span><span class="value num">${fmt$(p50)}</span><span class="note">p50 · mean ${fmt$(mean)}</span></div>
+      <div class="stat"><span class="label">p95 cost per run</span><span class="value num" style="color:${p95 > p50 * 3 ? "var(--err)" : "var(--ink)"}">${fmt$(p95)}</span><span class="note">${(p95 / p50).toFixed(1)}× the median</span></div>
+      <div class="stat"><span class="label">Per month</span><span class="value num">${fmt$(month)}</span><span class="note">mean × ${P.runs.toLocaleString("en-US")} runs × 30</span></div>
+      <div class="stat"><span class="label">Agent time</span><span class="value num">${fmtS(q(sl, 0.5))}</span><span class="note">p95 ${fmtS(q(sl, 0.95))}</span></div>
+      <div class="stat"><span class="label">Human wait</span><span class="value num">${sw.length ? Math.round(q(sw, 0.5)) + " min" : "none"}</span><span class="note">${sw.length ? `median, on ${Math.round((sw.length / N) * 100)}% of runs · p95 ${Math.round(q(sw, 0.95))} min` : "no approvals"}</span></div>`;
+    $("#histNote").textContent = `${Math.round((capped / N) * 100)}% of runs hit the ${P.max}-pass cap`;
+    // histogram
+    const Wd = 640, Hd = 220, m = { l: 40, r: 26, t: 18, b: 34 };
+    const hi = p99 * 1.05, bins = 36, bw = hi / bins, counts = new Array(bins).fill(0);
+    costs.forEach((c) => { counts[Math.min(bins - 1, Math.floor(c / bw))]++; });
+    const maxC = Math.max(...counts), x = (v) => m.l + (v / hi) * (Wd - m.l - m.r), y = (c) => Hd - m.b - (c / maxC) * (Hd - m.t - m.b);
+    const ticks = 5, step = hi / ticks;
+    let svg = `<svg viewBox="0 0 ${Wd} ${Hd}" role="img" aria-label="Histogram of simulated cost per run">`;
+    for (let i = 0; i <= 4; i++) { const yy = m.t + (i / 4) * (Hd - m.t - m.b); svg += `<line x1="${m.l}" x2="${Wd - m.r}" y1="${yy}" y2="${yy}" stroke="var(--grid)"/>`; }
+    counts.forEach((c, i) => { if (!c) return; const x0 = x(i * bw) + 1, x1 = x((i + 1) * bw) - 1; svg += `<rect class="hbar" x="${x0}" y="${y(c)}" width="${Math.max(1, x1 - x0)}" height="${Hd - m.b - y(c)}"/>`; });
+    svg += `<line class="axis" x1="${m.l}" x2="${Wd - m.r}" y1="${Hd - m.b}" y2="${Hd - m.b}"/>`;
+    for (let i = 0; i <= ticks; i++) { const v = i * step; svg += `<text class="tick" x="${x(v)}" y="${Hd - m.b + 16}" text-anchor="middle">${v < 1 ? "$" + v.toFixed(v < 0.1 ? 3 : 2) : "$" + v.toFixed(2)}</text>`; }
+    svg += `<text class="tick" x="${m.l - 6}" y="${m.t + 4}" text-anchor="end">${maxC}</text><text class="tick" x="${m.l - 6}" y="${Hd - m.b}" text-anchor="end">0</text>`;
+    const lab = (v, cls, txt, anchor) => `<line class="mark ${cls}" x1="${x(v)}" x2="${x(v)}" y1="${m.t - 4}" y2="${Hd - m.b}"/><text class="ml" x="${x(v) + (anchor === "end" ? -5 : 5)}" y="${m.t + 6}" text-anchor="${anchor}" style="fill:${cls === "m95" ? "var(--err)" : "var(--ink)"}">${txt}</text>`;
+    svg += lab(p50, "m50", "p50 " + fmt$(p50), x(p50) > Wd * 0.7 ? "end" : "start");
+    svg += lab(p95, "m95", "p95 " + fmt$(p95), x(p95) > Wd * 0.75 ? "end" : "start");
+    svg += `</svg>`;
+    $("#hist").innerHTML = svg;
+  }
+  sim();
+
+  // ---------- rating ----------
+  const DIM = [
+    ["Safety", 25, "approvals, sandboxes, injection screens", 52, 100],
+    ["Data protection", 20, "data classes stay inside their boundary", 25, 100],
+    ["Reliability", 15, "timeouts, retries, checkpoints, fallbacks", 86, 96],
+    ["Cost efficiency", 15, "right-sized models, cache layout, loop growth", 57, 92],
+    ["Quality", 15, "eval pass rate on the attached set", 91, 91],
+    ["Observability", 10, "trace coverage and output schemas", 80, 88]
+  ];
+  function rating(state) {
+    const i = state === "before" ? 3 : 4;
+    $("#ratingRows").innerHTML = DIM.map((d) => `<div class="rating-row"><span><b>${d[0]}</b><small>${d[2]} · weight ${d[1]}</small></span><div class="bar"><i style="width:${d[i]}%;background:${d[i] >= 85 ? "var(--ok)" : d[i] >= 60 ? "var(--warn)" : "var(--err)"}"></i></div><span class="num mono" style="text-align:right">${d[i]}</span></div>`).join("");
+    const score = Math.round(DIM.reduce((s, d) => s + d[1] * d[i], 0) / 100);
+    $("#score").textContent = score;
+    const g = $("#gate");
+    if (state === "before") { g.className = "pill err"; g.textContent = "Blocked: 2 open errors"; $("#scoreNote").textContent = "The weighted score is not terrible. The gate is what matters: an unapproved tier 3 refund and PII reaching an external model block promotion until fixed."; }
+    else { g.className = "pill ok"; g.textContent = "Can be promoted to staging"; $("#scoreNote").textContent = "After four one-click fixes: an approval with a timeout, a redaction step and a smaller classifier. Quality is unchanged because the eval pass rate did not move. The canvas shows 100 because it scores findings only. The full rating also weighs eval results and trace coverage."; }
+    $$("[data-r]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.r === state)));
+  }
+  $$("[data-r]").forEach((b) => b.addEventListener("click", () => rating(b.dataset.r)));
+  rating("before");
+})();
+</script>
+</body>
+</html>

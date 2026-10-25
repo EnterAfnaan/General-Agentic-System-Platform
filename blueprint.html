@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trellis · Blueprint</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .arch svg { width: 100%; height: auto; display: block; min-width: 760px; }
+  .arch .band { fill: var(--surface-2); stroke: var(--line); }
+  .arch .bl { font: 600 11px var(--f-mono); fill: var(--muted); letter-spacing: .08em; }
+  .arch .c { cursor: pointer; }
+  .arch .c rect { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.4; transition: stroke .15s; }
+  .arch .c:hover rect, .arch .c[aria-pressed="true"] rect { stroke: var(--accent); stroke-width: 2.4; }
+  .arch .c.new rect { stroke: var(--accent); stroke-dasharray: 0; }
+  .arch .c.gw rect { fill: var(--k-govern); stroke: var(--k-govern); }
+  .arch .c.gw text { fill: var(--bg); }
+  .arch .c:focus { outline: none; }
+  .arch .c:focus-visible rect { stroke: var(--accent); stroke-width: 3; }
+  .arch .t { font: 600 13px var(--f-body); fill: var(--ink); }
+  .arch .s { font: 10.5px var(--f-mono); fill: var(--muted); }
+  .arch .c.gw .s { fill: var(--bg); opacity: .75; }
+  .arch .ln { stroke: var(--line-strong); stroke-width: 1.5; fill: none; }
+  .arch .lp { stroke: var(--accent); stroke-width: 1.6; fill: none; stroke-dasharray: 6 4; }
+  .arch .tag { font: 600 9.5px var(--f-mono); }
+  .comp { display: grid; gap: 8px; }
+  .phases { display: grid; gap: 0; position: relative; }
+  .phase { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 18px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+  .phase:last-child { border-bottom: 0; }
+  .phase .when { display: grid; gap: 4px; align-content: start; }
+  .phase .when b { font-family: var(--f-display); font-size: 22px; }
+  .phase .when span { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+  .phase .what { display: grid; gap: 8px; }
+  .phase .exit { font-size: 14px; background: var(--ok-soft); color: var(--ink); border-radius: 6px; padding: 8px 10px; }
+  .phase .exit b { color: var(--ok); }
+  .gantt { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 6px 18px; align-items: center; font-size: 13px; }
+  .gantt .track { position: relative; height: 14px; background: var(--surface-3); border-radius: 4px; }
+  .gantt .track i { position: absolute; top: 0; bottom: 0; border-radius: 4px; background: var(--accent); }
+  .gantt .track i.on { background: repeating-linear-gradient(90deg, var(--accent) 0 8px, var(--accent-soft) 8px 12px); }
+  .gantt .axis { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+  @media (max-width: 600px) { .phase, .gantt { grid-template-columns: minmax(0, 1fr); } }
+  .metric { display: grid; gap: 4px; }
+  .metric .v { font-family: var(--f-display); font-size: 26px; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="shell" data-page="blueprint">
+  <nav id="rail" class="rail" aria-label="Prototype pages"></nav>
+  <main class="main">
+    <div class="page">
+      <header class="page-head">
+        <p class="eyebrow">Making it real · Blueprint</p>
+        <h1>How we would build it, in the order that pays off soonest</h1>
+        <p class="lede">Most of the parts exist as open source or cloud services. What Trellis adds is the typed graph spec, the pre-flight check, the gateways that enforce policy across frameworks, and the learning loop. So the plan is to adopt the plumbing, build the parts nobody else offers, and ship pre-flight first.</p>
+      </header>
+
+      <section class="section" aria-labelledby="arch-h">
+        <div class="section-head">
+          <p class="eyebrow">Architecture</p>
+          <h2 id="arch-h">A control plane that knows the graph, a data plane that runs it</h2>
+          <p>Select a component to see what it does, whether we build or adopt it, and the candidate technology. Components outlined in blue are the ones Trellis must build itself.</p>
+        </div>
+        <div class="panel arch svg-wrap" style="padding:12px" id="arch"></div>
+        <div class="panel"><div class="panel-body comp" id="compDetail" aria-live="polite"></div></div>
+      </section>
+
+      <section class="section" aria-labelledby="dec-h">
+        <div class="section-head">
+          <p class="eyebrow">Key decisions</p>
+          <h2 id="dec-h">Six choices that shape everything else</h2>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Decision</th><th>Proposed choice</th><th>Why</th><th>Rejected alternative</th></tr></thead>
+            <tbody>
+              <tr><td><b>Source of truth</b></td><td>A typed graph spec in Git. The canvas and the SDK are two editors of it.</td><td>Reviewable in pull requests, diffable, checkable in CI, and portable between runtimes.</td><td class="muted">Canvas state in a database. It cannot be reviewed or versioned like code.</td></tr>
+              <tr><td><b>Durable execution</b></td><td>Adopt a workflow engine for native graphs. Run imported graphs in their own framework behind an adapter.</td><td>Checkpointing, retries and timers are hard to get right. Teams keep their frameworks.</td><td class="muted">Writing our own engine, or forcing every team onto one framework.</td></tr>
+              <tr><td><b>Tools and agents</b></td><td>MCP for tools, A2A for remote agents, with Trellis gateways in between.</td><td>Open protocols the major vendors already support. The gateway is where policy lives.</td><td class="muted">Custom connector SDKs per framework.</td></tr>
+              <tr><td><b>Policy</b></td><td>Policy as code (OPA/Rego or Cedar), evaluated in the gateways and in pre-flight.</td><td>The same rule is checked at design time and enforced at run time.</td><td class="muted">Rules written inside each agent's prompt or code.</td></tr>
+              <tr><td><b>Telemetry</b></td><td>OpenTelemetry with the GenAI conventions, plus a <code>trellis.node_id</code> attribute.</td><td>Works with the trace stores teams already use. The node id lets traces be drawn onto the canvas.</td><td class="muted">A proprietary trace format.</td></tr>
+              <tr><td><b>What to build first</b></td><td>Spec, importers and pre-flight as a CLI and CI check.</td><td>Useful with no migration. It proves the spec on real systems before anyone builds a canvas.</td><td class="muted">Starting with the canvas, which is the most visible and least differentiated part.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="road-h">
+        <div class="section-head">
+          <p class="eyebrow">Roadmap</p>
+          <h2 id="road-h">Five phases, each ending in something a team uses</h2>
+          <p>Durations assume three to four engineers. Each phase has an exit test that real teams can verify, not a demo.</p>
+        </div>
+        <div class="panel"><div class="panel-body">
+          <div class="gantt" id="gantt"></div>
+        </div></div>
+        <div class="phases" id="phases"></div>
+      </section>
+
+      <section class="section" aria-labelledby="pilot-h">
+        <div class="section-head">
+          <p class="eyebrow">Pilots</p>
+          <h2 id="pilot-h">Two pilot teams: one we know well, one that proves it is general</h2>
+        </div>
+        <div class="grid g2">
+          <div class="card"><span class="pill accent">pilot 1 · customer zero</span><h3>Production Reliability Copilot</h3><p>It already has much of what Trellis assumes: an MCP server, OpenTelemetry traces, approval gates, read-only enforcement and 15+ agents, including a fan-out orchestrator and agent-to-agent delegation. Importing it is a strong first test of the spec. Expected first findings include loops bounded only by turn limits and missing eval sets: today only the primary query agent has an automated eval harness.</p></div>
+          <div class="card"><span class="pill info">pilot 2 · proves generality</span><h3>Support & Engineering Cross-Functional Teams</h3><p>Something shaped like customer support triage or developer PR review, built in a different framework. If pre-flight finds real issues there too, the idea holds across teams. If it only works on one internal stack, we have built a single-app feature.</p></div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="risk-h">
+        <div class="section-head">
+          <p class="eyebrow">Risks</p>
+          <h2 id="risk-h">What could sink it, and what we would do about it</h2>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Risk</th><th>Likelihood</th><th>Mitigation</th></tr></thead>
+            <tbody>
+              <tr><td><b>Scope creep.</b> "A platform for everything" never ships.</td><td><span class="pill err">high</span></td><td>Phase exits are real team outcomes. Pre-flight ships alone before any canvas work starts.</td></tr>
+              <tr><td><b>Cloud vendors converge.</b> Foundry, Bedrock and Vertex add similar control planes.</td><td><span class="pill warn">medium</span></td><td>Stay neutral across clouds and frameworks. Lean on open protocols, so a vendor feature becomes another adapter.</td></tr>
+              <tr><td><b>Teams will not import.</b> It feels like extra work for no gain.</td><td><span class="pill warn">medium</span></td><td>The importer does the work. The first value, pre-flight findings, arrives in minutes with no runtime change.</td></tr>
+              <tr><td><b>The platform becomes the crown jewels.</b> Gateways sit in front of every credential.</td><td><span class="pill warn">medium</span></td><td>Managed identities and short-lived tokens only. A separate blast radius per team. Gateways hold no long-lived secrets. Red-team it before phase 2 exits.</td></tr>
+              <tr><td><b>Forecasts are wrong</b> and teams stop trusting them.</td><td><span class="pill info">low–medium</span></td><td>Always show a band, never one number. Calibrate from traces. Publish forecast error per system.</td></tr>
+              <tr><td><b>Black-box harnesses limit pre-flight.</b></td><td><span class="pill info">certain, bounded</span></td><td>Be explicit about glass, grey and black boxes. Enforce at the sandbox and gateway boundary.</td></tr>
+              <tr><td><b>The learning loop proposes bad changes.</b></td><td><span class="pill info">low</span></td><td>Held-out sets, canaries, human approval, one-click rollback. Proposals are ranked by how often teams accept them.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="met-h">
+        <div class="section-head">
+          <p class="eyebrow">How we would know it works</p>
+          <h2 id="met-h">Measures for the first six months</h2>
+        </div>
+        <div class="grid">
+          <div class="card metric"><span class="eyebrow">Caught before production</span><span class="v">≥ 25</span><p>Pre-flight errors fixed before release across the two pilots.</p></div>
+          <div class="card metric"><span class="eyebrow">Forecast error</span><span class="v">±25%</span><p>Calibrated monthly cost forecast against the actual bill, per system.</p></div>
+          <div class="card metric"><span class="eyebrow">Spend under policy</span><span class="v">≥ 60%</span><p>Share of agent model spend that flows through Trellis gateways.</p></div>
+          <div class="card metric"><span class="eyebrow">Time to first governed system</span><span class="v">&lt; 1 day</span><p>From importing an existing agent to it running behind policy and traces.</p></div>
+          <div class="card metric"><span class="eyebrow">Proposals accepted</span><span class="v">≥ 40%</span><p>Learning proposals that a team accepts after review. Lower means noise.</p></div>
+          <div class="card metric"><span class="eyebrow">Skills reused</span><span class="v">≥ 3</span><p>Skills promoted from one system and used by another team's system.</p></div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="q-h">
+        <div class="section-head">
+          <p class="eyebrow">Open questions</p>
+          <h2 id="q-h">Decisions to make before phase 0</h2>
+        </div>
+        <ul class="list-check">
+          <li><span><b>Sponsor and owner.</b> Who funds a cross-team platform, and which group owns it after the pilots?</span></li>
+          <li><span><b>Second pilot team.</b> Which independent engineering or support team has a live agent system and a reason to want pre-flight?</span></li>
+          <li><span><b>Runtime for native graphs.</b> A general workflow engine (e.g. Temporal), or lightweight framework workflows?</span></li>
+          <li><span><b>Policy language.</b> OPA/Rego, which platform teams often know, or Cedar, which is easier to read and analyse?</span></li>
+          <li><span><b>Build or join.</b> Is there an internal platform team building part of this already, so Trellis becomes a layer on their work?</span></li>
+        </ul>
+      </section>
+
+      <nav class="next-prev" aria-label="Previous and next pages">
+        <a href="govern.html"><span>← Across every stage</span><b>Govern</b></a>
+        <a href="index.html"><span>Back to the start</span><b>Overview →</b></a>
+      </nav>
+    </div>
+  </main>
+</div>
+<script src="shared.js"></script>
+<script>
+(function () {
+  const COMP = {
+    studio: ["Studio", "control", "build", "Canvas and code editor for graph specs, plus the run, proposal and approval views.", "React with React Flow (xyflow) for the canvas, Monaco for spec and code nodes.", "Phase 3"],
+    registry: ["Graph registry", "control", "build", "Versioned graph specs in Git, with the resolved policy and contracts for each version.", "Git (GitHub or Azure DevOps) plus a JSON Schema for the spec.", "Phase 0"],
+    preflight: ["Pre-flight service", "control", "build", "Lint rules, the forecaster and the rating. Runs as a library, a CLI, a CI check and an API.", "Plain code over the spec. Monte Carlo forecaster calibrated from traces.", "Phase 1"],
+    policy: ["Policy service", "control", "adopt + write rules", "Holds org, team and system policy bundles. Answers decisions for pre-flight and the gateways.", "OPA/Rego or Cedar. The rule set is ours.", "Phase 2"],
+    learn: ["Eval & learning", "control", "build on adopted parts", "Datasets, eval runs, fork-based comparisons and the proposal engine.", "Existing eval tools for scoring. Proposal mining and ranking are ours.", "Phase 4"],
+    skills: ["Skill registry", "control", "build", "Versioned skills with provenance, owners, eval sets and usage across teams.", "Skills stored as files in Git, indexed for discovery.", "Phase 4"],
+    catalog: ["Connector catalog", "control", "build", "Connector contracts, owners, scopes and health checks.", "Contracts generated from MCP tool annotations and OpenAPI where possible.", "Phase 0"],
+    runtime: ["Runtime", "data", "adopt", "Executes native graphs durably: checkpoints, timers, retries, approvals that wait for hours.", "Temporal, or Agent Framework workflows. A decision for phase 3.", "Phase 3"],
+    adapters: ["Framework adapters", "data", "build", "Import and run LangGraph, Agent Framework and CrewAI graphs, and A2A agents, as nodes.", "One adapter per framework. Start with Agent Framework and LangGraph.", "Phase 0 import, phase 3 run"],
+    sandbox: ["Harness sandbox pool", "data", "adopt + configure", "Throwaway workspaces for Claude Code, Codex and container jobs, with egress rules.", "Container jobs (for example Azure Container Apps jobs or Kubernetes jobs) with network policy.", "Phase 3"],
+    mgw: ["Model gateway", "data", "adopt + extend", "Routing, data-boundary checks, redaction, budgets, caching and token accounting for every model call.", "An existing AI gateway (for example LiteLLM proxy or Azure API Management) plus Trellis policy hooks.", "Phase 2"],
+    tgw: ["Tool & MCP gateway", "data", "build", "Allowlists, argument validation, risk tiers, approvals and audit for every tool call.", "An MCP proxy that every agent's MCP client points at.", "Phase 2"],
+    dgw: ["Data gateway", "data", "build on drivers", "Read-only roles, on-behalf-of tokens, data-class tagging and memory writes.", "Thin service over database drivers and vector stores.", "Phase 2"],
+    state: ["State stores", "data", "adopt", "Checkpoints and the four kinds of memory.", "Postgres for checkpoints and pgvector for episodic memory to start.", "Phase 3"],
+    telemetry: ["Telemetry", "data", "adopt", "Traces, metrics and logs with GenAI attributes and node ids.", "OpenTelemetry collector to Langfuse, Phoenix or Application Insights.", "Phase 2"]
+  };
+  const box = (k, x, y, w, extra) => { const c = COMP[k]; const built = /^build/.test(c[2]); const gw = ["mgw", "tgw", "dgw"].includes(k); return `<g class="c${gw ? " gw" : ""}${built && !gw ? " new" : ""}" data-k="${k}" tabindex="0" role="button" aria-pressed="false" aria-label="${c[0]}"><rect x="${x}" y="${y}" width="${w}" height="54" rx="8"/><text class="t" x="${x + 12}" y="${y + 23}">${c[0]}</text><text class="s" x="${x + 12}" y="${y + 40}">${c[2]}</text>${built ? `<text class="tag" x="${x + w - 10}" y="${y + 16}" text-anchor="end" style="fill:${gw ? "var(--bg)" : "var(--accent)"}">BUILD</text>` : ""}</g>`; };
+  $("#arch").innerHTML = `<svg viewBox="0 0 980 420" role="group" aria-label="Trellis architecture: control plane above, data plane below">
+    <defs><marker id="aa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="var(--line-strong)"/></marker>
+    <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="var(--accent)"/></marker></defs>
+    <rect class="band" x="6" y="6" width="968" height="164" rx="12"/><text class="bl" x="22" y="28">CONTROL PLANE · KNOWS THE GRAPH</text>
+    <rect class="band" x="6" y="196" width="968" height="218" rx="12"/><text class="bl" x="22" y="218">DATA PLANE · RUNS IT</text>
+    ${box("studio", 22, 44, 170)}${box("registry", 210, 44, 170)}${box("preflight", 398, 44, 170)}${box("policy", 586, 44, 170)}${box("catalog", 774, 44, 186)}
+    ${box("learn", 398, 108, 170)}${box("skills", 774, 108, 186)}
+    ${box("runtime", 22, 236, 190)}${box("adapters", 22, 296, 190)}${box("sandbox", 22, 356, 190)}
+    ${box("mgw", 300, 236, 190)}${box("tgw", 300, 296, 190)}${box("dgw", 300, 356, 190)}
+    <rect x="600" y="236" width="170" height="174" rx="8" fill="none" stroke="var(--line-strong)" stroke-dasharray="5 4"/>
+    <text class="t" x="614" y="260">External systems</text><text class="s" x="614" y="282">models</text><text class="s" x="614" y="300">tools and MCP servers</text><text class="s" x="614" y="318">databases, indexes</text><text class="s" x="614" y="336">remote A2A agents</text>
+    ${box("state", 790, 236, 176)}${box("telemetry", 790, 316, 176)}
+    <text class="s" x="790" y="392">every component emits spans</text>
+    <g class="ln">
+      <path d="M192 71 H208" marker-end="url(#aa)"/><path d="M380 71 H396" marker-end="url(#aa)"/><path d="M568 71 H584" marker-end="url(#aa)"/>
+      <path d="M295 98 C 295 180, 117 170, 117 234" marker-end="url(#aa)"/>
+      <path d="M212 263 H252 M212 323 H252 M212 383 H252 M252 263 V383"/>
+      <path d="M252 263 H298" marker-end="url(#aa)"/><path d="M252 323 H298" marker-end="url(#aa)"/><path d="M252 383 H298" marker-end="url(#aa)"/>
+      <path d="M671 98 C 671 180, 470 170, 470 234" marker-end="url(#aa)"/>
+      <path d="M490 263 H598" marker-end="url(#aa)"/><path d="M490 323 H598" marker-end="url(#aa)"/><path d="M490 383 H598" marker-end="url(#aa)"/>
+    </g>
+    <path class="lp" d="M966 343 C 984 343, 984 184, 900 184 L 640 184 C 600 184, 584 172, 572 152" marker-end="url(#ab)"/>
+    <text x="700" y="180" class="s" style="fill:var(--accent)">traces → learning</text>
+  </svg>`;
+  function sel(k) {
+    const c = COMP[k];
+    $$("#arch .c").forEach((g) => g.setAttribute("aria-pressed", String(g.dataset.k === k)));
+    $("#compDetail").innerHTML = `<div class="row" style="justify-content:space-between"><h3>${c[0]}</h3><span class="row" style="gap:6px"><span class="pill ${/^build/.test(c[2]) ? "accent" : "info"}">${c[2]}</span><span class="pill">${c[1]} plane</span><span class="pill">${c[5]}</span></span></div><p>${c[3]}</p><p class="small muted"><b>Candidate:</b> ${c[4]}</p>`;
+  }
+  $("#arch").addEventListener("click", (e) => { const g = e.target.closest(".c"); if (g) sel(g.dataset.k); });
+  $("#arch").addEventListener("keydown", (e) => { const g = e.target.closest(".c"); if (g && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); sel(g.dataset.k); } });
+  sel("preflight");
+
+  const PH = [
+    ["Phase 0", "weeks 1–3", 0, 3, "Spec and importers", ["Graph spec v0 with JSON Schema", "Importers for Agent Framework and LangGraph", "Connector contracts generated from MCP and OpenAPI", "Read-only static map of an imported system"], "Pilot agents, orchestrator and delegation edges render as one graph from the import, with no hand editing."],
+    ["Phase 1", "weeks 4–9", 3, 9, "Pre-flight as CLI and CI", ["10 lint rules with one-click fix diffs", "Static forecast with p50/p95 bands", "Rating and the error gate", "Azure DevOps and GitHub checks"], "Both pilot teams run pre-flight in CI and fix at least five real findings before release."],
+    ["Phase 2", "weeks 10–17", 9, 17, "Gateways, policy and traces", ["Model and tool/MCP gateways with policy decisions", "Audit log and kill switches", "Spans tagged with node ids", "Forecast calibration from traces", "Workshop: replay tests and golden-set comparisons"], "One production system routes every model and tool call through the gateways, and its forecast lands within ±25% of the bill."],
+    ["Phase 3", "weeks 18–27", 17, 27, "Canvas and native runtime", ["Editable canvas over the spec", "Durable runs with checkpoints and approvals in Teams/Slack", "Harness sandbox nodes", "Run replay and fork", "Workshop: sandbox copies, real sandbox integrations, shadow runs, PRs in the team's framework"], "A new system is designed, checked, shipped and operated entirely in Trellis by a team that did not build Trellis."],
+    ["Phase 4", "week 28 →", 27, 34, "Learning loop", ["Signals and datasets", "Fork-based evals and the proposal inbox", "Skill mining and the skill registry", "Canary rollout and rollback"], "A pilot team accepts a proposal, and a skill promoted from one system is used by another team.", true]
+  ];
+  const T = 34;
+  $("#gantt").innerHTML = PH.map((p) => `<span><b>${p[0]}</b> <span class="muted small">${p[4]}</span></span><div class="track"><i class="${p[7] ? "on" : ""}" style="left:${(p[2] / T) * 100}%;width:${((p[3] - p[2]) / T) * 100}%"></i></div>`).join("") + `<span></span><div class="axis"><span>week 0</span><span>10</span><span>20</span><span>30</span></div>`;
+  $("#phases").innerHTML = PH.map((p) => `<div class="phase"><div class="when"><b>${p[0]}</b><span>${p[1]}</span></div><div class="what"><h3>${p[4]}</h3><ul class="plain">${p[5].map((x) => `<li>${x}</li>`).join("")}</ul><div class="exit"><b>Exit test:</b> ${p[6]}</div></div></div>`).join("");
+})();
+</script>
+</body>
+</html>

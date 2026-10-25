@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trellis · Run and observe</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .replay { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 920px) { .replay { grid-template-columns: minmax(0, 1fr); } }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+  .spans { display: grid; gap: 2px; padding: 8px; max-height: 520px; overflow: auto; }
+  .span { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; font: inherit; text-align: left; background: none; color: inherit; width: 100%; }
+  .span:hover { background: var(--surface-2); }
+  .span[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+  .span.future { opacity: .32; }
+  .span .nm { display: flex; gap: 8px; align-items: center; min-width: 0; font-size: 13.5px; }
+  .span .nm span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .span .ind { flex: none; }
+  .span .gantt { position: relative; height: 10px; background: var(--surface-3); border-radius: 3px; }
+  .span .gantt i { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: var(--kc, var(--accent)); min-width: 2px; }
+  .span.event .nm { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+  .span.event.warn .nm { color: var(--warn); }
+  .span.event.ok .nm { color: var(--ok); }
+  .sq { width: 9px; height: 9px; border-radius: 2px; background: var(--kc); flex: none; }
+  .state { display: grid; gap: 12px; }
+  .hyp { display: grid; grid-template-columns: 26px minmax(0, 1fr) 110px; gap: 8px; align-items: center; font-size: 13.5px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .hyp:last-child { border-bottom: 0; }
+  .hyp .id { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+  .hyp .bar { height: 8px; }
+  .hyp .bar > i { transition: width .4s; }
+  .hyp.confirmed b { color: var(--ok); }
+  .hyp.out { opacity: .5; }
+  .detail { font-size: 13.5px; display: grid; gap: 8px; }
+  .closes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 12px; }
+  .closes .card code { display: block; font-size: 11.5px; padding: 6px 8px; margin-top: 4px; }
+  .tl svg { width: 100%; height: auto; display: block; }
+  .goals { display: grid; gap: 10px; }
+  .goal { display: grid; grid-template-columns: minmax(0, 1fr) 90px; gap: 6px 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  .goal .bar { grid-column: 1 / -1; height: 12px; position: relative; }
+  .goal .bar .need { position: absolute; top: 0; bottom: 0; border-right: 2px dashed var(--ink); }
+  .heat svg { width: 100%; height: auto; display: block; }
+  .heat .hn rect.b { stroke: var(--line-strong); stroke-width: 1.2; }
+  .heat .hn text { font: 600 11px var(--f-body); fill: var(--ink); }
+  .heat .hn text.v { font: 500 10px var(--f-mono); fill: var(--ink); }
+</style>
+</head>
+<body>
+<div class="shell" data-page="run">
+  <nav id="rail" class="rail" aria-label="Prototype pages"></nav>
+  <main class="main">
+    <div class="page">
+      <header class="page-head">
+        <p class="eyebrow">Stage 4 · Run & observe</p>
+        <h1>Runs that can wait, resume, replay and stop on purpose</h1>
+        <p class="lede">A run is one instance of a graph with its own state. The runtime saves that state at every node boundary, so a run can wait hours for an approval, survive a crashed worker, be replayed for debugging or be forked to try a different model. Every step is a trace span tied to a canvas node.</p>
+      </header>
+
+      <section class="section" aria-labelledby="rp-h">
+        <div class="section-head">
+          <p class="eyebrow">Replay a real-shaped run</p>
+          <h2 id="rp-h">The incident investigator, step by step</h2>
+          <p>An alert fires on a slow orders database. Step through the run and watch hypotheses gain and lose weight, checkpoints get saved, a worker die mid-query, and the exit condition end the loop on purpose. Select any span to see its inputs, outputs and cost.</p>
+        </div>
+        <div class="controls">
+          <div class="row" style="gap:6px">
+            <button class="btn primary sm" id="play">Play</button>
+            <button class="btn sm" id="step">Step</button>
+            <button class="btn sm ghost" id="restart">Restart</button>
+          </div>
+          <span class="small muted mono" id="clock"></span>
+        </div>
+        <div class="replay">
+          <div class="panel">
+            <div class="panel-head"><span class="eyebrow">Trace · run_7c21e0</span><span class="small muted">time →</span></div>
+            <div class="spans" id="spans"></div>
+          </div>
+          <div class="state">
+            <div class="stats" id="runStats"></div>
+            <div class="panel"><div class="panel-head"><span class="eyebrow">Goal: name the root cause with evidence</span></div><div class="panel-body" id="hyps" style="gap:0"></div></div>
+            <div class="panel"><div class="panel-head"><span class="eyebrow" id="detTitle">Selected span</span></div><div class="panel-body detail" id="detail"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="close-h">
+        <div class="section-head">
+          <p class="eyebrow">Close conditions</p>
+          <h2 id="close-h">Seven ways a run ends, each with a defined next step</h2>
+          <p>A run that stops for a reason other than success still leaves something useful behind: a partial report, the evidence so far, or a question for a person. "It timed out" is never the whole story.</p>
+        </div>
+        <div class="closes">
+          <div class="card"><span class="pill ok">success</span><h4>The success test passes</h4><p>Write the result, save what was learned, close the run.</p><code>success: score ≥ 0.8 and evidence ≥ 2</code></div>
+          <div class="card"><span class="pill warn">budget</span><h4>Spend reaches the cap</h4><p>Stop before the next paid call. Report the best hypothesis and its confidence.</p><code>budget_usd: 0.60</code></div>
+          <div class="card"><span class="pill warn">iterations</span><h4>The loop hits its cap</h4><p>Report what was ruled out and what is left to test, then hand to a person.</p><code>max_iterations: 6</code></div>
+          <div class="card"><span class="pill warn">time</span><h4>Wall-clock timeout</h4><p>Agent time only. Time spent waiting for a person has its own timeout.</p><code>timeout: 10m (excl. approvals)</code></div>
+          <div class="card"><span class="pill info">no progress</span><h4>The loop is going in circles</h4><p>The same test twice, or scores moving less than 0.02 for two passes. Stop and ask.</p><code>no_progress: { repeats: 2, delta: 0.02 }</code></div>
+          <div class="card"><span class="pill">human</span><h4>A person stops it</h4><p>From the run page, Teams or Slack. The checkpoint stays, so it can resume later.</p><code>stop: manual · resumable</code></div>
+          <div class="card"><span class="pill err">policy</span><h4>A kill switch or breaker trips</h4><p>Team spend ceiling or an org-wide pause. Every affected run stops cleanly.</p><code>breaker: team_month_usd</code></div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="cp-h">
+        <div class="section-head">
+          <p class="eyebrow">Checkpoints</p>
+          <h2 id="cp-h">Resume, replay and fork are three uses of one checkpoint</h2>
+          <p>A checkpoint holds the run's state, messages, pending calls and budget counters at a node boundary. Writes carry idempotency keys, so a resumed run never refunds twice.</p>
+        </div>
+        <div class="panel tl" style="padding:14px">
+          <svg viewBox="0 0 860 200" role="img" aria-label="A run timeline with checkpoints cp-1 to cp-5. Resume continues after a crash at cp-2. Replay reruns from cp-1 with recorded outputs. Fork branches from cp-3 with a different model.">
+            <line x1="40" y1="70" x2="820" y2="70" stroke="var(--line-strong)" stroke-width="2"/>
+            <g font-family="var(--f-mono)" font-size="11">
+              <circle cx="80" cy="70" r="9" fill="var(--k-trigger)"/><text x="80" y="46" text-anchor="middle" class="svg-mono">start</text>
+              <circle cx="220" cy="70" r="8" fill="var(--surface)" stroke="var(--accent)" stroke-width="2.5"/><text x="220" y="46" text-anchor="middle" class="svg-mono">cp-1</text>
+              <circle cx="360" cy="70" r="8" fill="var(--surface)" stroke="var(--accent)" stroke-width="2.5"/><text x="360" y="46" text-anchor="middle" class="svg-mono">cp-2</text>
+              <path d="M395 58 l14 24 M409 58 l-14 24" stroke="var(--err)" stroke-width="2.5"/><text x="402" y="104" text-anchor="middle" style="fill:var(--err)">worker lost</text>
+              <circle cx="500" cy="70" r="8" fill="var(--surface)" stroke="var(--accent)" stroke-width="2.5"/><text x="500" y="46" text-anchor="middle" class="svg-mono">cp-3</text>
+              <circle cx="640" cy="70" r="8" fill="var(--surface)" stroke="var(--accent)" stroke-width="2.5"/><text x="640" y="46" text-anchor="middle" class="svg-mono">cp-4</text>
+              <circle cx="790" cy="70" r="9" fill="var(--ok)"/><text x="790" y="46" text-anchor="middle" class="svg-mono">done</text>
+            </g>
+            <path d="M360 78 C 370 110, 380 110, 420 80" fill="none" stroke="var(--ok)" stroke-width="2" stroke-dasharray="4 3"/>
+            <text x="430" y="126" class="svg-mono" style="font-size:11px;fill:var(--ok)">resume: new worker loads cp-2</text>
+            <path d="M500 78 C 520 160, 560 160, 640 160 H 780" fill="none" stroke="var(--k-harness)" stroke-width="2"/>
+            <circle cx="790" cy="160" r="7" fill="var(--k-harness)"/>
+            <text x="560" y="182" class="svg-mono" style="font-size:11px;fill:var(--k-harness)">fork from cp-3 with a medium model → compare outcomes</text>
+            <text x="40" y="22" class="svg-mono" style="font-size:11px">replay: load any checkpoint, feed recorded tool outputs, rerun the model calls to debug a bad decision</text>
+          </svg>
+        </div>
+        <div class="grid g3">
+          <div class="card"><h4>Resume</h4><p>After a crash, a deploy or an approval that took four hours. The run continues from the last checkpoint and repeats no paid step.</p></div>
+          <div class="card"><h4>Replay</h4><p>Rerun a past run with its recorded tool outputs to see why the model chose what it chose. Nothing touches real systems.</p></div>
+          <div class="card"><h4>Fork</h4><p>Branch from a checkpoint with one change: a model, a prompt, a tool. The Learn stage uses forks to compare variants on real cases.</p></div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="goal-h">
+        <div class="section-head">
+          <p class="eyebrow">Several goals at once</p>
+          <h2 id="goal-h">Goals share one budget, and the scheduler decides who waits</h2>
+          <p>The PR review system pursues three goals in parallel branches. When the run budget is tight, the scheduler funds goals in priority order or in proportion, by team choice. Move the budget to see which goals finish.</p>
+        </div>
+        <div class="split">
+          <div class="stack">
+            <label class="field"><span><span>Run budget</span><output id="budOut">$2.20</output></span><input type="range" id="bud" min="0.4" max="4" step="0.1" value="2.2"></label>
+            <div class="row"><span class="small muted">Allocation</span><button class="chip" data-mode="priority" aria-pressed="true">Strict priority</button><button class="chip" data-mode="share" aria-pressed="false">Proportional</button></div>
+            <div class="goals" id="goals"></div>
+            <p class="small muted">Dashed line = what the goal needs to finish. A goal that gets less stops at its budget close condition and reports what it found so far.</p>
+          </div>
+          <div class="stack">
+            <div class="card"><h4>When goals conflict</h4><p>An incident run may want to <b>restore service</b> (kill blocking session 87) and <b>find the root cause</b> (which needs session 87 alive to inspect). Policy decides the order instead of the model.</p>
+<pre class="code"><span class="k">goals</span>:
+  - restore_service:  { priority: 1 }
+  - find_root_cause:  { priority: 2 }
+<span class="k">arbitration</span>:
+  - before: restore_service.any_write
+    do: snapshot_evidence      <span class="c"># capture locks, plans, waits</span>
+  - restore_service.kill_session:
+    tier: 3                    <span class="c"># still needs a DBA</span></pre></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="mem-h">
+        <div class="section-head">
+          <p class="eyebrow">Memory</p>
+          <h2 id="mem-h">Four kinds of memory, each with a scope and an expiry</h2>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Kind</th><th>Holds</th><th>Scope</th><th>Retention</th><th>Example</th></tr></thead>
+            <tbody>
+              <tr><td><b>Working</b></td><td>This run's state: messages, hypotheses, tool results</td><td>run</td><td>until the run closes, then archived with the trace</td><td class="muted">H1 at 0.78 after the blocking query</td></tr>
+              <tr><td><b>Episodic</b></td><td>What happened in past runs and how they ended</td><td>system or team</td><td>180 days, PII as tokens</td><td class="muted">"3 similar incidents: 2 were the nightly ETL"</td></tr>
+              <tr><td><b>Semantic</b></td><td>Facts learned about the world</td><td>team or org</td><td>until contradicted or reviewed</td><td class="muted">"orders-db runs ETL reprice at 09:00 UTC"</td></tr>
+              <tr><td><b>Procedural</b></td><td>How to do things: skills, playbooks, tool sequences</td><td>team or org</td><td>versioned, reviewed</td><td class="muted">Skill "Diagnose a blocking chain" v3</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="small muted measure">Memory writes go through the data gateway like any other write, so data-class rules and retention apply. Procedural memory is what the Learn stage promotes into shared skills.</p>
+      </section>
+
+      <section class="section" aria-labelledby="obs-h">
+        <div class="section-head">
+          <p class="eyebrow">Observability</p>
+          <h2 id="obs-h">Traces map back to the canvas</h2>
+          <p>Every span carries the graph node id alongside the OpenTelemetry GenAI attributes for model, tokens and tool. That means a week of traces can be painted onto the canvas. Pick a measure.</p>
+        </div>
+        <div class="row" id="heatModes"><button class="chip" data-h="cost" aria-pressed="true">Cost share</button><button class="chip" data-h="lat" aria-pressed="false">Latency share</button><button class="chip" data-h="fail" aria-pressed="false">Failure rate</button></div>
+        <div class="panel heat svg-wrap" style="padding:12px" id="heat"></div>
+        <p class="small muted">Last 7 days of the incident investigator, 284 runs. Sample data.</p>
+      </section>
+
+      <nav class="next-prev" aria-label="Previous and next pages">
+        <a href="check.html"><span>← Stage 3</span><b>Check</b></a>
+        <a href="learn.html"><span>Next · Stage 5</span><b>Learn: runs turn into improvements →</b></a>
+      </nav>
+    </div>
+  </main>
+</div>
+<script src="shared.js"></script>
+<script>
+(function () {
+  // ---------- replay ----------
+  const K = { trigger: "var(--k-trigger)", agent: "var(--k-agent)", data: "var(--k-data)", control: "var(--k-control)", tool: "var(--k-tool)", event: "var(--line-strong)" };
+  const H0 = { H1: ["Blocking chain on Inventory", 0.45], H2: ["Plan regression in GetOrders", 0.30], H3: ["CPU saturation", 0.15], H4: ["tempdb contention", 0.10] };
+  const STEPS = [
+    { n: "Alert fired", k: "trigger", node: "i1", ms: 5, c: 0, d: 0, inp: "Kafka · alerts topic", out: "orders-db: p95 query latency 2.4 s for 5 min (threshold 2 s)" },
+    { n: "Recall similar incidents", k: "data", node: "i2", ms: 60, c: 0.0006, d: 1, inp: "embedding of alert + db name", out: "3 matches: 2× blocking chain caused by the nightly ETL, 1× plan regression after an index rebuild" },
+    { n: "Propose hypotheses", k: "agent", node: "i3", ms: 2400, c: 0.014, d: 1, inp: "alert, 3 past incidents, db topology", out: "4 hypotheses with priors. Test H1 first: highest prior and cheapest to check.", hyp: { H1: 0.45, H2: 0.30, H3: 0.15, H4: 0.10 } },
+    { ev: "checkpoint cp-1 saved · 4.1 KB", cls: "ok" },
+    { n: "Pass 1 · Pick next test", k: "agent", node: "i4", ms: 900, c: 0.002, d: 2, inp: "hypotheses + budget left $0.58", out: "Query the blocking chain: sys.dm_exec_requests joined to sys.dm_os_waiting_tasks", pass: 1 },
+    { n: "Pass 1 · Query DMVs (read-only)", k: "data", node: "i5", ms: 340, c: 0.0008, d: 2, inp: "SELECT session_id, blocking_session_id, wait_type … (read-only role)", out: "Head blocker: session 87, wait LCK_M_X on Inventory. 41 sessions blocked behind it." },
+    { n: "Pass 1 · Score evidence", k: "agent", node: "i6", ms: 1600, c: 0.011, d: 2, inp: "query result + hypotheses", out: "H1 rises to 0.78. H3 drops: CPU is 34%. One piece of evidence so far.", hyp: { H1: 0.78, H2: 0.22, H3: 0.04, H4: 0.06 } },
+    { n: "Exit check", k: "control", node: "x1", ms: 5, c: 0, d: 2, inp: "score ≥ 0.8 and evidence ≥ 2?", out: "Not yet: top score 0.78 with 1 piece of evidence. Pass 1 of 6, $0.03 of $0.60 spent. Loop." },
+    { ev: "checkpoint cp-2 saved · 6.8 KB", cls: "ok" },
+    { n: "Pass 2 · Pick next test", k: "agent", node: "i4", ms: 800, c: 0.002, d: 2, inp: "context compacted to a 180-token summary", out: "What is session 87 running, and since when?", pass: 2 },
+    { ev: "worker pod evicted during query · run lost its process", cls: "warn" },
+    { ev: "resumed from cp-2 on worker-b · read re-issued (idempotent)", cls: "ok" },
+    { n: "Pass 2 · Query DMVs (read-only)", k: "data", node: "i5", ms: 290, c: 0.0008, d: 2, inp: "sys.dm_exec_sessions + dm_exec_sql_text for session 87", out: "UPDATE Inventory SET price = … from job 'nightly-etl-reprice', started 09:02, running 39 min, holds an X lock." },
+    { n: "Pass 2 · Score evidence", k: "agent", node: "i6", ms: 1500, c: 0.011, d: 2, inp: "query result + summary", out: "H1 confirmed at 0.93 with 2 pieces of evidence. Matches 2 past incidents.", hyp: { H1: 0.93, H2: 0.05, H3: 0.01, H4: 0.01 } },
+    { n: "Exit check", k: "control", node: "x1", ms: 5, c: 0, d: 2, inp: "score ≥ 0.8 and evidence ≥ 2?", out: "Success: H1 at 0.93 with 2 pieces of evidence, after pass 2 of 6. Spent $0.042 of $0.60.", done: true },
+    { n: "Write RCA report", k: "tool", node: "i8", ms: 2600, c: 0.006, d: 1, inp: "confirmed cause, evidence, timeline", out: "Jira OPS-4412 created (tier 1). Recommends moving the ETL job off peak and batching the UPDATE. Killing session 87 is offered as a tier 3 action for a DBA." },
+    { n: "Save confirmed cause", k: "data", node: "i9", ms: 70, c: 0.0006, d: 1, inp: "episodic memory, team scope", out: "Stored: 'nightly-etl-reprice blocks Inventory at 09:00' with links to the trace and the ticket." },
+    { ev: "run closed · success", cls: "ok" }
+  ];
+  let t = 0; STEPS.forEach((s) => { if (s.ev) { s.t = t; return; } s.t = t; t += s.ms; });
+  const TOTAL = t;
+  let cur = -1, selIdx = -1, timer = null;
+  function hypAt(i) { let h = Object.fromEntries(Object.entries(H0).map(([k, v]) => [k, v[1]])); for (let j = 0; j <= i; j++) if (STEPS[j] && STEPS[j].hyp) h = STEPS[j].hyp; return h; }
+  function render() {
+    $("#spans").innerHTML = STEPS.map((s, i) => {
+      const fut = i > cur ? " future" : "";
+      if (s.ev) return `<button class="span event ${s.cls}${fut}" data-i="${i}" ${i > cur ? "disabled" : ""}><span class="nm"><span>${s.cls === "warn" ? "⚠" : "◆"} ${esc(s.ev)}</span></span><span></span></button>`;
+      const left = (s.t / TOTAL) * 100, w = Math.max(0.8, (s.ms / TOTAL) * 100);
+      return `<button class="span${fut}" data-i="${i}" aria-pressed="${i === selIdx}" ${i > cur ? "disabled" : ""} style="padding-left:${8 + s.d * 14}px"><span class="nm"><span class="sq" style="--kc:${K[s.k]}"></span><span>${esc(s.n)}</span></span><span class="gantt"><i style="left:${left}%;width:${w}%;--kc:${K[s.k]}"></i></span></button>`;
+    }).join("");
+    const done = STEPS.slice(0, cur + 1).filter((s) => !s.ev);
+    const spent = done.reduce((a, s) => a + s.c, 0), ms = done.reduce((a, s) => a + s.ms, 0);
+    const pass = Math.max(0, ...done.map((s) => s.pass || 0));
+    const cps = STEPS.slice(0, cur + 1).filter((s) => s.ev && /checkpoint/.test(s.ev)).length;
+    $("#runStats").innerHTML = `
+      <div class="stat"><span class="label">Spent</span><span class="value num">$${spent.toFixed(3)}</span><span class="note">of $0.60 budget</span></div>
+      <div class="stat"><span class="label">Agent time</span><span class="value num">${(ms / 1000).toFixed(1)} s</span><span class="note">pass ${pass} of 6</span></div>
+      <div class="stat"><span class="label">Checkpoints</span><span class="value num">${cps}</span><span class="note">${cur >= STEPS.length - 1 ? "run closed" : cur < 0 ? "not started" : "running"}</span></div>`;
+    const h = hypAt(cur), fin = cur >= 0 && STEPS.slice(0, cur + 1).some((s) => s.done);
+    $("#hyps").innerHTML = Object.entries(H0).map(([k, v]) => { const p = h[k]; const conf = fin && k === "H1"; return `<div class="hyp${conf ? " confirmed" : ""}${p < 0.06 ? " out" : ""}"><span class="id">${k}</span><span>${conf ? "<b>" + v[0] + " ✓</b>" : v[0]}</span><span class="row" style="gap:6px;flex-wrap:nowrap"><span class="bar" style="flex:1"><i style="width:${p * 100}%;background:${conf ? "var(--ok)" : p >= 0.5 ? "var(--accent)" : "var(--line-strong)"}"></i></span><span class="mono small num">${p.toFixed(2)}</span></span></div>`; }).join("");
+    const s = STEPS[selIdx];
+    if (!s || s.ev) { $("#detTitle").textContent = "Selected span"; $("#detail").innerHTML = `<p class="muted">${cur < 0 ? "Press Play or Step to start the run." : "Select a span in the trace to see what went in and what came out."}</p>`; }
+    else {
+      $("#detTitle").textContent = s.n;
+      $("#detail").innerHTML = `<dl class="kv"><dt>node</dt><dd class="mono">${s.node}</dd><dt>in</dt><dd>${esc(s.inp)}</dd><dt>out</dt><dd>${esc(s.out)}</dd><dt>time</dt><dd class="num">${s.ms >= 1000 ? (s.ms / 1000).toFixed(1) + " s" : s.ms + " ms"}</dd><dt>cost</dt><dd class="num">${s.c ? "$" + s.c.toFixed(4) : "free"}</dd></dl>`;
+    }
+    $("#clock").textContent = cur < 0 ? "ready" : `step ${Math.min(cur + 1, STEPS.length)} of ${STEPS.length}`;
+    $("#play").textContent = timer ? "Pause" : cur >= STEPS.length - 1 ? "Replay" : "Play";
+  }
+  function advance() {
+    if (cur >= STEPS.length - 1) { stop(); return; }
+    cur++; if (!STEPS[cur].ev) selIdx = cur; render();
+    if (cur >= STEPS.length - 1) stop();
+  }
+  function stop() { clearInterval(timer); timer = null; render(); }
+  $("#play").onclick = () => {
+    if (timer) { stop(); return; }
+    if (cur >= STEPS.length - 1) { cur = -1; selIdx = -1; }
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    timer = setInterval(advance, reduce ? 300 : 850); advance();
+  };
+  $("#step").onclick = () => { stop(); advance(); };
+  $("#restart").onclick = () => { stop(); cur = -1; selIdx = -1; render(); };
+  $("#spans").addEventListener("click", (e) => { const b = e.target.closest(".span"); if (!b || b.disabled) return; selIdx = +b.dataset.i; render(); });
+  // open in a finished state so the page is complete at rest
+  cur = STEPS.length - 1; selIdx = 13; render();
+
+  // ---------- goals ----------
+  const GOALS = [["Find correctness bugs", 1, 1.1, "Claude Code"], ["Flag security issues", 2, 0.35, "Security agent"], ["Add missing tests", 3, 0.95, "Codex + test run"]];
+  let mode = "priority";
+  function goals() {
+    const B = +$("#bud").value; $("#budOut").textContent = "$" + B.toFixed(2);
+    let alloc;
+    if (mode === "priority") { let left = B; alloc = GOALS.map((g) => { const a = Math.min(g[2], left); left -= a; return a; }); }
+    else { const tot = GOALS.reduce((s, g) => s + g[2], 0); alloc = GOALS.map((g) => Math.min(g[2], (B * g[2]) / tot)); }
+    const max = Math.max(...GOALS.map((g) => g[2])) * 1.15;
+    $("#goals").innerHTML = GOALS.map((g, i) => {
+      const a = alloc[i], full = a >= g[2] - 1e-9, zero = a < 0.01;
+      return `<div class="goal"><span><b>${g[0]}</b><br><span class="small muted">priority ${g[1]} · ${g[3]}</span></span><span class="pill ${full ? "ok" : zero ? "err" : "warn"}" style="justify-self:end">${full ? "finishes" : zero ? "skipped" : "partial"}</span><div class="bar"><i style="width:${(a / max) * 100}%;background:${full ? "var(--ok)" : "var(--warn)"}"></i><span class="need" style="left:${(g[2] / max) * 100}%"></span></div><span class="small muted mono" style="grid-column:1/-1">$${a.toFixed(2)} of $${g[2].toFixed(2)} needed</span></div>`;
+    }).join("");
+  }
+  $("#bud").addEventListener("input", goals);
+  $$("[data-mode]").forEach((b) => b.addEventListener("click", () => { mode = b.dataset.mode; $$("[data-mode]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); goals(); }));
+  goals();
+
+  // ---------- heat overlay ----------
+  const HN = [["Alert", 0, 0, 0, 0], ["Recall", 1, 2, 1, 0.4], ["Hypotheses", 2, 26, 18, 1.1], ["Pick next test", 3, 14, 15, 0.7], ["Query DMVs", 4, 4, 6, 3.9], ["Score evidence", 5, 38, 30, 0.9], ["Exit check", 6, 0, 0, 0], ["Write report", 7, 13, 26, 0.4], ["Save cause", 8, 3, 4, 0.2]];
+  function heat(m) {
+    const idx = m === "cost" ? 2 : m === "lat" ? 3 : 4, max = Math.max(...HN.map((n) => n[idx])) || 1;
+    const w = 96, gap = 14, x0 = 10;
+    let s = `<svg viewBox="0 0 ${x0 * 2 + HN.length * (w + gap) - gap} 120" role="img" aria-label="Graph nodes shaded by ${m}">`;
+    HN.forEach((n, i) => { const x = x0 + i * (w + gap); if (i) s += `<path d="M${x - gap} 50h${gap - 2}" stroke="var(--line-strong)" stroke-width="1.5"/>`; });
+    s += `<path d="M${x0 + 6 * (w + gap) + w / 2} 30 C ${x0 + 6 * (w + gap) + w / 2} 0, ${x0 + 3 * (w + gap) + w / 2} 0, ${x0 + 3 * (w + gap) + w / 2} 30" fill="none" stroke="var(--accent)" stroke-dasharray="5 4" stroke-width="1.5"/>`;
+    HN.forEach((n, i) => {
+      const x = x0 + i * (w + gap), v = n[idx], a = v / max;
+      const col = m === "fail" ? "var(--err)" : "var(--accent)";
+      s += `<g class="hn"><rect class="b" x="${x}" y="30" width="${w}" height="44" rx="7" fill="var(--surface)"/><rect x="${x}" y="30" width="${w}" height="44" rx="7" fill="${col}" fill-opacity="${(0.08 + a * 0.62).toFixed(2)}"/>
+        <text x="${x + 8}" y="49">${n[0]}</text><text class="v" x="${x + 8}" y="65">${m === "fail" ? v.toFixed(1) + "% fail" : v + "% of " + (m === "cost" ? "cost" : "time")}</text></g>`;
+    });
+    s += `<text x="10" y="100" class="svg-mono" style="font-size:11px">${m === "cost" ? "Score evidence and Propose hypotheses take 64% of spend: first candidates for a smaller model or compaction." : m === "lat" ? "Score evidence and the report take over half the time. The report could stream while the memory write runs." : "Query DMVs fails 3.9% of the time, mostly lock timeouts. The retry policy covers it, so add a lock-timeout hint."}</text></svg>`;
+    $("#heat").innerHTML = s;
+  }
+  $("#heatModes").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; $$("#heatModes button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); heat(b.dataset.h); });
+  heat("cost");
+})();
+</script>
+</body>
+</html>
