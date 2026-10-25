@@ -3,7 +3,7 @@
 [![Status](https://img.shields.io/badge/Status-Concept_Prototype-blue?style=flat-square)](#)
 [![Architecture](https://img.shields.io/badge/Architecture-Spec--First-0284c7?style=flat-square)](#)
 [![Protocols](https://img.shields.io/badge/Protocols-MCP_%7C_A2A_%7C_OTel-6366f1?style=flat-square)](#)
-[![Deployment](https://img.shields.io/badge/Deployment-Cloudflare_Pages-f97316?style=flat-square)](https://general-agentic-system-platform.pages.dev)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Cloudflare-f97316?style=flat-square&logo=cloudflare)](https://general-agentic-system-platform.afnaankhan11.workers.dev)
 [![Roadmap](https://img.shields.io/badge/Plan-5--Phase_Roadmap-10b981?style=flat-square)](PLAN.md)
 
 > **Know what an agent system will do, cost, and be allowed to touch before it runs.**
@@ -16,21 +16,25 @@ Trellis sits **above** the frameworks teams already use (LangGraph, Microsoft Ag
 
 ## 🌟 Interactive Live Demo
 
-The interactive prototype demonstrates all eight facets of the workbench:
-- **Studio Canvas:** Interactive visual DAG editor with real-time linting, forecast calculation, and one-click fixes.
-- **Pre-Flight Checker:** 2,000-run Monte Carlo cost/latency simulator and static rule analyzer.
-- **Trace Replay & Checkpoints:** Step-through durable trace player with crash recovery and budget allocation.
-- **Policy Simulator:** Multi-layer OPA/Cedar rule evaluator with write-tier enforcement and audit logging.
-- **Learning & Skill Mining:** Trace-derived proposal inbox (canary rollouts, model swaps) and skill registry.
-- **Workshop:** Ephemeral sandbox test ladder (fakes, recorded replay, real sandboxes) and framework exporter.
+The full interactive prototype is deployed live on Cloudflare's global edge network:
 
+🌐 **Live Application:** [**https://general-agentic-system-platform.afnaankhan11.workers.dev**](https://general-agentic-system-platform.afnaankhan11.workers.dev)
+
+Direct links to interactive modules:
+- [**Studio Canvas**](https://general-agentic-system-platform.afnaankhan11.workers.dev/canvas.html#triage): Visual DAG editor with real-time linting, p50/p95 forecasting, and one-click graph fixes.
+- [**Pre-Flight Checker**](https://general-agentic-system-platform.afnaankhan11.workers.dev/check.html): 2,000-run Monte Carlo cost & latency simulator and static rule catalog.
+- [**Trace Replay & Checkpoints**](https://general-agentic-system-platform.afnaankhan11.workers.dev/run.html): Step-through durable trace player with crash recovery and multi-goal budget allocator.
+- [**Policy Simulator**](https://general-agentic-system-platform.afnaankhan11.workers.dev/govern.html): Multi-layer OPA/Cedar rule evaluator with write-tier enforcement and audit log.
+- [**Learning & Skill Mining**](https://general-agentic-system-platform.afnaankhan11.workers.dev/learn.html): Trace-derived proposal inbox (canary rollouts, model swaps) and skill registry.
+- [**Workshop**](https://general-agentic-system-platform.afnaankhan11.workers.dev/workshop.html): Ephemeral sandbox test ladder (fakes, recorded replay, real sandboxes) and framework exporter.
+- [**Architecture Blueprint**](https://general-agentic-system-platform.afnaankhan11.workers.dev/blueprint.html): Interactive component plane visualizer and implementation Gantt chart.
+
+### Running Locally
 ```bash
-# Run the interactive demo locally:
+# Start any local static server:
 python -m http.server 8090
 # Open http://localhost:8090/index.html in your browser
 ```
-
-*(For deployment to Cloudflare Pages, see [Deploying to Cloudflare Pages](#-deploying-to-cloudflare-pages).)*
 
 ---
 
